@@ -1,0 +1,2546 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>McDo Rush Kitchen — Jeu d'Arcade Cuisine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', 'Nunito', sans-serif;
+            background: #2b1035;
+            color: #fff;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+        .font-cartoon {
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+        }
+        /* Logo 3D style Cooking Urban Food */
+        .arcade-logo-text {
+            text-shadow:
+                0 2px 0 #7c2d12,
+                0 4px 0 #451a03,
+                0 6px 10px rgba(0,0,0,0.45);
+            -webkit-text-stroke: 1.5px #451a03;
+        }
+        /* Boutons glossy 3D */
+        .btn-glossy {
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 3px 0 rgba(255,255,255,0.55), inset 0 -3px 0 rgba(0,0,0,0.22), 0 4px 0 rgba(0,0,0,0.32), 0 6px 12px rgba(0,0,0,0.25);
+            transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.12s, filter 0.12s;
+        }
+        .btn-glossy::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 8%;
+            right: 8%;
+            height: 36%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 100%);
+            border-radius: 999px;
+            pointer-events: none;
+        }
+        .btn-glossy:hover {
+            filter: brightness(1.06);
+        }
+        .btn-glossy:active {
+            transform: translateY(3px) scale(0.96);
+            box-shadow: inset 0 2px 0 rgba(255,255,255,0.3), 0 1px 0 rgba(0,0,0,0.28);
+        }
+
+        /* Bacs gastro creusés en inox / polycarbonate (effet Toy 3D) */
+        .gastro-pan {
+            box-shadow:
+                inset 0 4px 8px rgba(0,0,0,0.45),
+                inset 0 -2px 4px rgba(255,255,255,0.22),
+                0 3px 0 rgba(0,0,0,0.35);
+            transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.12s;
+        }
+        .gastro-pan:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.08);
+        }
+        .gastro-pan:active {
+            transform: translateY(2px) scale(0.95);
+        }
+
+        /* Flacons de sauces avec pression élastique "Squeeze" */
+        @keyframes bottleSqueeze {
+            0% { transform: scale(1, 1); }
+            35% { transform: scale(0.84, 1.16) translateY(-3px); }
+            70% { transform: scale(1.08, 0.93); }
+            100% { transform: scale(1, 1); }
+        }
+        .sauce-bottle-btn {
+            box-shadow:
+                inset 0 3px 6px rgba(255,255,255,0.4),
+                inset 0 -4px 8px rgba(0,0,0,0.35),
+                0 4px 0 rgba(0,0,0,0.35);
+            transition: transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .sauce-bottle-btn:hover {
+            transform: translateY(-3px) rotate(-2deg);
+        }
+        .sauce-bottle-btn:active {
+            animation: bottleSqueeze 0.28s ease-out;
+        }
+
+        /* Animations d'assemblage "boing" + chevauchement Vrai Burger */
+        @keyframes boingDrop {
+            0% { opacity: 0; transform: translateY(-42px) scale(1.25, 0.75); }
+            55% { opacity: 1; transform: translateY(4px) scale(0.92, 1.08); }
+            80% { transform: translateY(-2px) scale(1.03, 0.97); }
+            100% { opacity: 1; transform: translateY(0) scale(1, 1); }
+        }
+        .layer-boing {
+            animation: boingDrop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .burger-stack-layer {
+            margin-top: -5px;
+            box-shadow: 0 5px 10px rgba(15, 23, 42, 0.32), inset 0 2px 0 rgba(255,255,255,0.45);
+        }
+        .burger-stack-layer:first-child {
+            margin-top: 0;
+        }
+
+        /* Papier d'emballage à damier rouge/blanc en perspective 3D */
+        .checker-wrapper-3d {
+            background-color: #fffbeb;
+            background-image:
+                linear-gradient(45deg, rgba(225, 29, 72, 0.16) 25%, transparent 25%),
+                linear-gradient(-45deg, rgba(225, 29, 72, 0.16) 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, rgba(225, 29, 72, 0.16) 75%),
+                linear-gradient(-45deg, transparent 75%, rgba(225, 29, 72, 0.16) 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+            transform: perspective(380px) rotateX(16deg);
+            box-shadow: 0 6px 0 #d97706, 0 10px 16px rgba(0,0,0,0.28);
+        }
+
+        /* Animations du décor : lampes oscillantes, vitrine & respiration client */
+        @keyframes lampSwing {
+            0%, 100% { transform: rotate(-2.5deg); }
+            50% { transform: rotate(2.5deg); }
+        }
+        .lamp-pendulum {
+            transform-origin: top center;
+            animation: lampSwing 4.2s ease-in-out infinite;
+        }
+        .lamp-pendulum-delayed {
+            transform-origin: top center;
+            animation: lampSwing 4.8s ease-in-out 1.4s infinite;
+        }
+        @keyframes customerIdle {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-4px) scale(1.015, 0.99); }
+        }
+        .customer-idle-breathe {
+            animation: customerIdle 2.8s ease-in-out infinite;
+        }
+        .window-glass-sheen {
+            background: linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.32) 36%, transparent 48%, rgba(255,255,255,0.18) 56%, transparent 68%);
+        }
+
+        /* Effets thermiques : Lueur UHC pulsante */
+        @keyframes uhcHeatPulse {
+            0%, 100% { box-shadow: inset 0 0 18px rgba(251, 146, 60, 0.55), 0 6px 12px rgba(0,0,0,0.4); }
+            50% { box-shadow: inset 0 0 30px rgba(239, 68, 68, 0.85), 0 6px 16px rgba(249, 115, 22, 0.35); }
+        }
+
+        /* Entrée et sautillement du client */
+        @keyframes customerEnter {
+            0% { opacity: 0; transform: translateX(-60px) scale(0.9); }
+            70% { opacity: 1; transform: translateX(6px) scale(1.02); }
+            100% { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        .customer-enter {
+            animation: customerEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        @keyframes customerHappy {
+            0%, 100% { transform: translateY(0) scale(1); }
+            35% { transform: translateY(-14px) scale(1.06); }
+            70% { transform: translateY(-5px) scale(1.02); }
+        }
+        .customer-happy {
+            animation: customerHappy 0.55s ease-in-out;
+        }
+        @keyframes shakeCounter {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-8px); }
+            40% { transform: translateX(8px); }
+            60% { transform: translateX(-5px); }
+            80% { transform: translateX(5px); }
+        }
+        .shake-counter {
+            animation: shakeCounter 0.35s ease-in-out;
+        }
+        @keyframes coinFloat {
+            0% { opacity: 1; transform: translateY(0) scale(0.8); }
+            100% { opacity: 0; transform: translateY(-60px) scale(1.25); }
+        }
+        .coin-floater {
+            animation: coinFloat 0.9s ease-out forwards;
+            pointer-events: none;
+        }
+        /* Texture inox & comptoir rose framboise */
+        .counter-pink-surface {
+            background: linear-gradient(180deg, #f43f5e 0%, #be185d 45%, #831843 100%);
+            border-top: 5px solid #fda4af;
+            box-shadow: inset 0 4px 10px rgba(255,255,255,0.35);
+        }
+        .inox-tray-surface {
+            background:
+                radial-gradient(circle at 50% 15%, rgba(255,255,255,0.95), transparent 65%),
+                linear-gradient(145deg, #f1f5f9 0%, #cbd5e1 50%, #94a3b8 100%);
+            box-shadow: inset 0 4px 8px rgba(255,255,255,0.95), inset 0 -5px 10px rgba(15,23,42,0.3), 0 10px 20px rgba(0,0,0,0.4);
+        }
+        .uhc-warmer-surface {
+            background: linear-gradient(180deg, #7c2d12 0%, #431407 100%);
+            animation: uhcHeatPulse 3s ease-in-out infinite;
+        }
+        /* Scrollbar custom */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 99px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.35); border-radius: 99px; }
+
+        /* Mode Mobile "Tout d'un seul coup d'œil" (<= 1023px) */
+        @media (max-width: 1023px) {
+            body {
+                height: 100dvh;
+                max-height: 100dvh;
+                overflow: hidden;
+            }
+            #arcade-counter-view {
+                min-height: 0;
+                overflow: hidden;
+            }
+            #counter-worktop {
+                min-height: 0;
+                overflow-y: auto;
+            }
+            .mobile-compact-svg svg {
+                height: 14px !important;
+                width: auto !important;
+            }
+            .mobile-sauce-svg svg {
+                height: 20px !important;
+                width: auto !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- ========================================================= -->
+    <!-- BARRE SUPÉRIEURE HUD ARCADE (LOGO 3D + PIÈCES + MODES)    -->
+    <!-- ========================================================= -->
+    <header class="bg-gradient-to-r from-purple-950 via-fuchsia-950 to-purple-950 border-b-2 lg:border-b-4 border-pink-400/50 sticky top-0 z-40 shadow-xl shrink-0">
+        <div class="max-w-7xl mx-auto px-2 sm:px-5 py-1 lg:py-2 flex items-center justify-between gap-1.5">
+            
+            <!-- Badge Logo 3D Style Cooking Urban Food -->
+            <div class="flex items-center gap-1.5 lg:gap-2.5 shrink-0">
+                <div class="relative w-8 h-8 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-gradient-to-b from-amber-300 to-orange-500 border-2 border-yellow-100 flex items-center justify-center shadow-lg transform -rotate-3 shrink-0">
+                    <svg viewBox="0 0 40 36" class="w-6 h-6 lg:w-9 lg:h-9">
+                        <!-- Mini Burger Cartoon -->
+                        <path d="M5 16 Q5 5 20 5 Q35 5 35 16 Z" fill="#f59e0b" stroke="#78350f" stroke-width="2"/>
+                        <circle cx="14" cy="10" r="1.2" fill="#fef3c7"/>
+                        <circle cx="20" cy="8" r="1.2" fill="#fef3c7"/>
+                        <circle cx="26" cy="10" r="1.2" fill="#fef3c7"/>
+                        <path d="M4 18 Q10 15 16 18 T28 18 T36 18" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
+                        <rect x="5" y="20" width="30" height="5" rx="2.5" fill="#78350f"/>
+                        <polygon points="7,20 33,20 28,25 12,25" fill="#facc15"/>
+                        <rect x="6" y="26" width="28" height="5" rx="2.5" fill="#d97706" stroke="#78350f" stroke-width="1.5"/>
+                    </svg>
+                </div>
+                <div class="leading-none">
+                    <div class="flex items-center gap-1">
+                        <span class="font-cartoon text-sm sm:text-xl lg:text-2xl tracking-tight text-amber-300 arcade-logo-text">McDO</span>
+                        <span class="font-cartoon text-[10px] sm:text-sm lg:text-lg px-1.5 py-0.5 rounded-md lg:rounded-lg bg-lime-400 text-emerald-950 border border-emerald-900 shadow">KITCHEN</span>
+                    </div>
+                    <p class="text-[11px] font-bold text-pink-200/90 mt-0.5 hidden lg:block">Édition Septembre 2026 • Comptoir Express</p>
+                </div>
+            </div>
+
+            <!-- Compteurs, Compte & Navigation Modes -->
+            <div class="flex items-center gap-1 sm:gap-2 justify-end min-w-0">
+                <!-- Bouton Compte & Sauvegarde -->
+                <button onclick="openAuthModal()" id="btn-account-hud" class="btn-glossy flex items-center gap-1 bg-purple-900/90 hover:bg-purple-800 border border-pink-300/80 rounded-full px-2 py-0.5 lg:px-3 lg:py-1 text-[11px] sm:text-sm font-extrabold text-white shadow shrink-0">
+                    <span>👤</span>
+                    <span id="hud-username" class="max-w-[56px] sm:max-w-[110px] truncate">Invité</span>
+                    <span id="hud-sync-dot" class="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-amber-400" title="Mode local"></span>
+                </button>
+
+                <!-- Compteur Clients Servis -->
+                <div class="flex items-center gap-1 bg-black/40 border border-emerald-400/70 rounded-full px-2 py-0.5 lg:px-3 lg:py-1 shadow-inner shrink-0">
+                    <span class="text-xs lg:text-base">⭐</span>
+                    <span id="hud-served" class="font-cartoon text-xs sm:text-base text-emerald-300">0</span>
+                </div>
+
+                <!-- Bouton Son -->
+                <button onclick="toggleSound()" id="btn-sound" class="btn-glossy w-7 h-7 lg:w-9 lg:h-9 rounded-lg lg:rounded-xl bg-pink-500 border border-pink-200 flex items-center justify-center text-xs lg:text-base shrink-0" title="Son ON/OFF">
+                    <span id="sound-icon">🔊</span>
+                </button>
+
+                <!-- Sélecteur de modes -->
+                <nav class="flex items-center bg-black/45 p-0.5 lg:p-1 rounded-xl lg:rounded-2xl border border-white/15 gap-0.5 lg:gap-1 shrink-0">
+                    <button onclick="switchMode('free')" id="tab-mode-free" class="mode-tab btn-glossy px-2 sm:px-3.5 py-1 lg:py-1.5 rounded-lg lg:rounded-xl text-[11px] sm:text-sm font-extrabold bg-amber-400 text-amber-950">
+                        🍔 Libre
+                    </button>
+                    <button onclick="switchMode('rush')" id="tab-mode-rush" class="mode-tab px-2 sm:px-3.5 py-1 lg:py-1.5 rounded-lg lg:rounded-xl text-[11px] sm:text-sm font-extrabold text-pink-100 hover:bg-white/10">
+                        ⚡ Rush
+                    </button>
+                    <button onclick="switchMode('book')" id="tab-mode-book" class="mode-tab px-2 sm:px-3.5 py-1 lg:py-1.5 rounded-lg lg:rounded-xl text-[11px] sm:text-sm font-extrabold text-pink-100 hover:bg-white/10">
+                        📖 (27)
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========================================================= -->
+    <!-- VUE PRINCIPALE : SCÈNE COMPTOIR ARCADE (SERVICE & RUSH)   -->
+    <!-- ========================================================= -->
+    <main id="arcade-counter-view" class="flex-1 flex flex-col max-w-7xl w-full mx-auto">
+
+        <!-- 1. ARRIÈRE-PLAN VITRINE URBAINE & SALLE CLIENT -->
+        <section class="relative overflow-hidden bg-gradient-to-b from-sky-300 via-pink-100 to-amber-100 border-b-2 lg:border-b-4 border-pink-400 pt-1 pb-1 lg:pb-0 px-2 sm:px-6 shrink-0">
+            
+            <!-- Reflet diagonal vitrine urbaine -->
+            <div class="absolute inset-0 window-glass-sheen pointer-events-none z-0"></div>
+
+            <!-- Décor rue urbaine pastel en SVG -->
+            <div class="hidden sm:block absolute inset-0 pointer-events-none opacity-85">
+                <svg viewBox="0 0 1200 220" preserveAspectRatio="xMidYMax slice" class="w-full h-full">
+                    <rect x="20" y="30" width="160" height="190" rx="8" fill="#fbcfe8"/>
+                    <rect x="200" y="15" width="210" height="205" rx="8" fill="#fde68a"/>
+                    <rect x="790" y="25" width="190" height="195" rx="8" fill="#bae6fd"/>
+                    <rect x="1000" y="10" width="180" height="210" rx="8" fill="#ddd6fe"/>
+                    <rect x="45" y="55" width="35" height="45" rx="6" fill="#fff" opacity="0.7"/>
+                    <rect x="115" y="55" width="35" height="45" rx="6" fill="#fff" opacity="0.7"/>
+                    <rect x="235" y="45" width="45" height="50" rx="6" fill="#fff" opacity="0.75"/>
+                    <rect x="320" y="45" width="45" height="50" rx="6" fill="#fff" opacity="0.75"/>
+                    <rect x="825" y="50" width="40" height="48" rx="6" fill="#fff" opacity="0.75"/>
+                    <rect x="905" y="50" width="40" height="48" rx="6" fill="#fff" opacity="0.75"/>
+                    <path d="M15 125 L185 125 L195 152 L5 152 Z" fill="#f43f5e"/>
+                    <path d="M195 120 L415 120 L425 148 L185 148 Z" fill="#10b981"/>
+                    <path d="M785 122 L985 122 L995 150 L775 150 Z" fill="#f59e0b"/>
+                    <rect x="0" y="0" width="18" height="220" fill="#fb7185"/>
+                    <rect x="1182" y="0" width="18" height="220" fill="#fb7185"/>
+                </svg>
+            </div>
+
+            <!-- Lampes suspendues chaleureuses en haut (Desktop) -->
+            <div class="hidden lg:flex relative z-10 justify-around items-start pointer-events-none -mt-2 mb-1">
+                <div class="flex flex-col items-center lamp-pendulum">
+                    <div class="w-1 h-4 bg-slate-800"></div>
+                    <div class="w-12 h-5 rounded-t-full bg-gradient-to-b from-pink-500 to-rose-600 border-b-2 border-amber-200 shadow-md"></div>
+                    <div class="w-8 h-2 bg-amber-300/50 rounded-full blur-xs"></div>
+                </div>
+                <div class="flex flex-col items-center lamp-pendulum-delayed">
+                    <div class="w-1 h-3 bg-slate-800"></div>
+                    <div class="w-14 h-5 rounded-t-full bg-gradient-to-b from-amber-400 to-orange-500 border-b-2 border-yellow-100 shadow-md"></div>
+                    <div class="w-10 h-2.5 bg-yellow-200/60 rounded-full blur-xs"></div>
+                </div>
+                <div class="flex flex-col items-center lamp-pendulum">
+                    <div class="w-1 h-4 bg-slate-800"></div>
+                    <div class="w-12 h-5 rounded-t-full bg-gradient-to-b from-pink-500 to-rose-600 border-b-2 border-amber-200 shadow-md"></div>
+                    <div class="w-8 h-2 bg-amber-300/50 rounded-full blur-xs"></div>
+                </div>
+            </div>
+
+            <!-- Barre Filtres Catégorie (Service Libre) OU Chrono Rush -->
+            <div class="relative z-20 flex items-center justify-between gap-1.5 mb-1 lg:mb-2">
+                <!-- Filtres postes en Service Libre -->
+                <div id="free-category-bar" class="flex items-center gap-1 overflow-x-auto py-0.5 flex-1 min-w-0">
+                    <button onclick="setCategoryFilter('ALL')" data-cat="ALL" class="cat-pill btn-glossy px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-lg lg:rounded-xl text-[10px] lg:text-xs font-extrabold bg-purple-800 text-white border border-purple-300 shrink-0">
+                        Tous (27)
+                    </button>
+                    <button onclick="setCategoryFilter('1')" data-cat="1" class="cat-pill px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-lg lg:rounded-xl text-[10px] lg:text-xs font-extrabold bg-red-600 text-white border border-red-200 shrink-0">
+                        1• 10:1
+                    </button>
+                    <button onclick="setCategoryFilter('2')" data-cat="2" class="cat-pill px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-lg lg:rounded-xl text-[10px] lg:text-xs font-extrabold bg-red-700 text-white border border-red-200 shrink-0">
+                        2• 4:1
+                    </button>
+                    <button onclick="setCategoryFilter('3')" data-cat="3" class="cat-pill px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-lg lg:rounded-xl text-[10px] lg:text-xs font-extrabold bg-rose-800 text-white border border-rose-200 shrink-0">
+                        3• 3:1
+                    </button>
+                    <button onclick="setCategoryFilter('4')" data-cat="4" class="cat-pill px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-lg lg:rounded-xl text-[10px] lg:text-xs font-extrabold bg-amber-500 text-amber-950 border border-amber-100 shrink-0">
+                        4• Poulet
+                    </button>
+                    <button onclick="setCategoryFilter('5')" data-cat="5" class="cat-pill px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-lg lg:rounded-xl text-[10px] lg:text-xs font-extrabold bg-emerald-500 text-emerald-950 border border-emerald-100 shrink-0">
+                        5• Wraps
+                    </button>
+                    <button onclick="setCategoryFilter('6')" data-cat="6" class="cat-pill px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-lg lg:rounded-xl text-[10px] lg:text-xs font-extrabold bg-sky-500 text-sky-950 border border-sky-100 shrink-0">
+                        6• Poisson
+                    </button>
+                </div>
+
+                <!-- HUD Rush Chrono -->
+                <div id="rush-control-bar" class="hidden items-center gap-2 bg-purple-950/90 border-2 border-amber-400 rounded-xl lg:rounded-2xl px-2.5 py-0.5 lg:px-3 lg:py-1 shadow-lg flex-1 sm:flex-initial justify-between">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-sm lg:text-base">⏱️</span>
+                        <span id="rush-clock" class="font-cartoon text-sm lg:text-lg text-amber-300">03:00</span>
+                    </div>
+                    <div class="flex items-center gap-1 bg-black/40 px-2 py-0.5 rounded-lg">
+                        <span class="text-[10px] font-bold text-pink-200">COMBO</span>
+                        <span id="rush-combo-badge" class="font-cartoon text-xs lg:text-sm text-lime-400">x1</span>
+                    </div>
+                    <button onclick="startRushSession()" class="btn-glossy px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-lg lg:rounded-xl bg-rose-500 text-white text-[10px] lg:text-xs font-extrabold">
+                        🔄
+                    </button>
+                </div>
+
+                <!-- Aide rapide & Guide visuel -->
+                <div class="flex items-center gap-1 shrink-0">
+                    <button onclick="toggleGuideMode()" id="btn-guide-toggle" class="btn-glossy px-2 py-0.5 lg:px-3 lg:py-1 rounded-lg lg:rounded-xl bg-white text-purple-950 border border-purple-400 text-[10px] lg:text-xs font-extrabold flex items-center gap-1">
+                        <span>👁️</span>
+                        <span id="guide-label">Guide : OFF</span>
+                    </button>
+                    <button onclick="skipCurrentOrder()" class="btn-glossy px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-lg lg:rounded-xl bg-slate-800 text-white border border-slate-500 text-[10px] lg:text-xs font-extrabold" title="Client suivant">
+                        ⏭️
+                    </button>
+                </div>
+            </div>
+
+            <!-- ZONE CLIENT + BULLE DE COMMANDE ILLUSTRÉE (Toujours côte à côte sur mobile) -->
+            <div class="relative z-10 flex flex-row items-center sm:items-end justify-center gap-2 sm:gap-6">
+                
+                <!-- Personnage Client SVG animé -->
+                <div id="customer-stage" class="customer-enter flex flex-col items-center shrink-0">
+                    <div id="customer-avatar" class="customer-idle-breathe w-14 h-14 sm:w-24 sm:h-24 lg:w-28 lg:h-28 drop-shadow-xl">
+                        <!-- Avatar SVG généré en JS -->
+                    </div>
+                </div>
+
+                <!-- Bulle de commande du client -->
+                <div class="relative bg-white text-slate-900 rounded-2xl lg:rounded-3xl border-2 lg:border-4 border-purple-900 shadow-xl p-2 sm:p-3 lg:p-4 mb-0.5 lg:mb-3 flex-1 max-w-md min-w-0">
+                    <!-- Pointe de bulle vers le client -->
+                    <div class="hidden sm:block absolute -left-3.5 bottom-7 w-5 h-5 bg-white border-l-4 border-b-4 border-purple-900 transform rotate-45"></div>
+
+                    <div class="flex items-center justify-between gap-1.5 mb-0.5 lg:mb-1">
+                        <span id="order-cat-badge" class="px-2 py-0.5 rounded-full text-[9px] lg:text-[11px] font-black uppercase tracking-wider bg-red-600 text-white shrink-0">
+                            1 • BŒUF 10:1
+                        </span>
+                        <!-- Badge Commande Duo (Rush) -->
+                        <span id="order-duo-badge" class="hidden px-1.5 py-0.5 rounded-full text-[9px] lg:text-[10px] font-black uppercase tracking-wider bg-purple-800 text-amber-300 border border-amber-300 shrink-0">
+                            DUO 1/2
+                        </span>
+                        <!-- Jauge de patience client -->
+                        <div class="flex items-center gap-1 flex-1 max-w-[110px] lg:max-w-[140px]">
+                            <span id="patience-emoji" class="text-xs lg:text-sm">😊</span>
+                            <div class="flex-1 h-2 lg:h-2.5 bg-slate-200 rounded-full overflow-hidden border border-slate-400">
+                                <div id="patience-bar" class="h-full bg-emerald-500 transition-all duration-200" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Suivi des 2 produits en Commande Duo -->
+                    <div id="duo-items-tracker" class="hidden mb-1 flex items-center gap-1 text-[10px] lg:text-[11px] font-black overflow-x-auto"></div>
+
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <h2 id="order-title" class="font-cartoon text-sm sm:text-lg lg:text-xl text-purple-950 leading-tight break-words">
+                                    BIG MAC
+                                </h2>
+                                <!-- Badge Grill Slip (SANS / EXTRA) -->
+                                <span id="grill-slip-badge" class="hidden px-2 py-0.5 rounded-md text-[9px] lg:text-[11px] font-black uppercase tracking-wide bg-amber-300 text-red-900 border border-red-600 shadow-sm animate-pulse">
+                                    SANS CORNICHONS
+                                </span>
+                            </div>
+                            <p id="order-subtitle" class="text-[10px] lg:text-xs font-bold text-slate-600 mt-0.5 leading-none">
+                                ☆☆☆☆☆
+                            </p>
+                        </div>
+                        <!-- Pastilles d'avancement -->
+                        <div id="order-progress-pills" class="flex flex-wrap justify-end gap-0.5 lg:gap-1 max-w-[85px] lg:max-w-[95px] shrink-0 pt-0.5"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. COMPTOIR DE PRÉPARATION ROSE FRAMBOISE & INOX (GRILLE COMPACTE MOBILE) -->
+        <section id="counter-worktop" class="flex-1 counter-pink-surface p-1.5 sm:px-5 sm:py-3 grid grid-cols-12 lg:flex lg:flex-col gap-1.5 lg:gap-3 shadow-2xl">
+
+            <!-- ÉTAGE SUPÉRIEUR DU COMPTOIR : POSTE PAINS | PLATEAU D'ASSEMBLAGE | CHAUFFE-PLATS UHC -->
+            <div class="col-span-12 grid grid-cols-12 gap-1.5 lg:gap-3 items-stretch">
+
+                <!-- POSTE GAUCHE (3 cols mobile & desktop) : PAINS & TORTILLAS -->
+                <div class="col-span-3 bg-amber-950/55 backdrop-blur-sm border border-amber-300/60 lg:border-2 rounded-2xl lg:rounded-3xl p-1 lg:p-2.5 flex flex-col justify-between shadow-lg">
+                    <div class="flex items-center justify-between px-0.5 pb-0.5 lg:pb-1.5 border-b border-amber-200/20">
+                        <span class="font-cartoon text-[9px] lg:text-xs uppercase tracking-wider text-amber-200 flex items-center gap-0.5">
+                            <span>🍞</span> Pains
+                        </span>
+                        <span class="hidden sm:inline text-[10px] font-bold bg-amber-400/20 text-amber-200 px-2 py-0.5 rounded-full">Base</span>
+                    </div>
+                    <div id="station-breads" class="mobile-compact-svg grid grid-cols-1 sm:grid-cols-2 gap-1 lg:gap-1.5 pt-1 lg:pt-2 max-h-[175px] lg:max-h-[250px] overflow-y-auto pr-0.5">
+                        <!-- Bacs pains générés en JS -->
+                    </div>
+                </div>
+
+                <!-- POSTE CENTRAL (5 cols mobile & desktop) : PLATEAU INOX D'ASSEMBLAGE -->
+                <div class="col-span-5 inox-tray-surface rounded-2xl lg:rounded-3xl border-2 lg:border-4 border-slate-100 p-1.5 lg:p-3 flex flex-col justify-between relative min-h-[175px] lg:min-h-[280px]">
+                    
+                    <!-- En-tête plateau -->
+                    <div class="flex items-center justify-between gap-1 z-10">
+                        <span class="px-1.5 lg:px-2.5 py-0.5 rounded-full bg-slate-800 text-white font-cartoon text-[9px] lg:text-[11px] uppercase tracking-wider shadow truncate">
+                            🍽️ Plateau
+                        </span>
+                        <button onclick="triggerVisualHint()" class="btn-glossy px-1.5 lg:px-2.5 py-0.5 lg:py-1 rounded-lg lg:rounded-xl bg-amber-400 text-amber-950 border border-amber-200 text-[10px] lg:text-xs font-black shrink-0">
+                            💡 Indice
+                        </button>
+                    </div>
+
+                    <!-- Zone centrale : Pile visuelle du burger -->
+                    <div class="flex-1 flex items-center justify-center my-0.5 lg:my-1.5 relative min-h-0">
+                        <div id="burger-assembly-stack" class="mobile-compact-svg w-full flex flex-col-reverse items-center justify-start max-h-[125px] lg:max-h-[235px] overflow-y-auto py-1 px-0.5">
+                            <!-- Rempli dynamiquement -->
+                        </div>
+                    </div>
+
+                    <!-- Papier emballage McDo en perspective 3D en bas du plateau -->
+                    <div class="checker-wrapper-3d border border-amber-500 lg:border-2 rounded-lg lg:rounded-xl py-0.5 lg:py-1 px-1.5 text-center">
+                        <span class="font-cartoon text-[8px] lg:text-[11px] uppercase tracking-widest text-rose-950 drop-shadow-xs block truncate">
+                            🏁 Service Officiel
+                        </span>
+                    </div>
+                </div>
+
+                <!-- POSTE DROIT (4 cols mobile & desktop) : CHAUFFE-PLATS UHC -->
+                <div class="col-span-4 uhc-warmer-surface border border-orange-400/80 lg:border-2 rounded-2xl lg:rounded-3xl p-1 lg:p-2.5 flex flex-col justify-between">
+                    <div class="flex items-center justify-between px-0.5 pb-0.5 lg:pb-1.5 border-b border-orange-300/25">
+                        <span class="font-cartoon text-[9px] lg:text-xs uppercase tracking-wider text-orange-200 flex items-center gap-0.5">
+                            <span>🔥</span> UHC
+                        </span>
+                        <span class="hidden sm:inline text-[10px] font-bold bg-orange-500/30 text-orange-200 px-2 py-0.5 rounded-full">Chaud</span>
+                    </div>
+                    <div id="station-proteins" class="mobile-compact-svg grid grid-cols-2 sm:grid-cols-3 gap-1 lg:gap-1.5 pt-1 lg:pt-2 max-h-[175px] lg:max-h-[250px] overflow-y-auto pr-0.5">
+                        <!-- Bacs viandes/poulet/poisson générés en JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ÉTAGE INFÉRIEUR DU COMPTOIR : BOUTEILLES DE SAUCES + TABLE À GARNITURE -->
+            <div class="col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-1.5 lg:gap-3 items-stretch">
+
+                <!-- RANGÉE DE FLACONS DE SAUCES (10 sur 1 ligne mobile, 2x5 desktop) -->
+                <div class="lg:col-span-5 bg-rose-950/60 border border-pink-300/60 lg:border-2 rounded-2xl lg:rounded-3xl p-1 lg:p-2.5 shadow-lg">
+                    <div class="hidden lg:flex items-center justify-between px-1 pb-1.5 border-b border-pink-200/20">
+                        <span class="font-cartoon text-xs uppercase tracking-wider text-pink-200 flex items-center gap-1">
+                            <span>🧴</span> Flacons & Sauces
+                        </span>
+                        <span class="text-[10px] font-bold text-pink-200/80">Clique pour presser</span>
+                    </div>
+                    <div id="station-sauces" class="mobile-sauce-svg grid grid-cols-5 sm:grid-cols-10 lg:grid-cols-5 gap-1 lg:gap-1.5 lg:pt-2">
+                        <!-- Flacons de sauces générés en JS -->
+                    </div>
+                </div>
+
+                <!-- BACS INOX GARNITURES FRAÎCHES & FROMAGES -->
+                <div class="lg:col-span-7 bg-emerald-950/55 border border-emerald-300/60 lg:border-2 rounded-2xl lg:rounded-3xl p-1 lg:p-2.5 shadow-lg">
+                    <div class="hidden lg:flex items-center justify-between px-1 pb-1.5 border-b border-emerald-200/20">
+                        <span class="font-cartoon text-xs uppercase tracking-wider text-emerald-200 flex items-center gap-1">
+                            <span>🥬</span> Table à Garniture & Fromages <span>🧀</span>
+                        </span>
+                        <span class="text-[10px] font-bold text-emerald-200/80">Survole Cornichon/Tomate pour 1 ou 2</span>
+                    </div>
+                    <div id="station-toppings-cheese" class="mobile-compact-svg lg:pt-2">
+                        <!-- Bacs garnitures & fromages générés en JS -->
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- ========================================================= -->
+    <!-- VUE LIVRE DE RECETTES ILLUSTRÉ (MÉMO DES 27 VARIANTES)    -->
+    <!-- ========================================================= -->
+    <section id="recipe-book-view" class="hidden flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 flex-col gap-4">
+        <div class="bg-purple-950/90 border-2 border-pink-400/60 rounded-3xl p-4 flex flex-col gap-3 shadow-xl">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-pink-400/25">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">🏆</span>
+                    <span class="font-cartoon text-sm sm:text-base text-amber-300">Maîtrise globale : <strong id="book-total-stars">0 / 135 ⭐</strong></span>
+                </div>
+                <button onclick="toggleBookUnmasteredFilter()" id="btn-book-unmastered" class="btn-glossy px-3 py-1 rounded-xl text-xs font-extrabold bg-purple-800 text-pink-100 border border-pink-300/50">
+                    🎯 À réviser (&lt; 5⭐)
+                </button>
+            </div>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                    <button onclick="filterBookCategory('ALL')" data-book-cat="ALL" class="book-cat-btn btn-glossy px-3 py-1.5 rounded-xl text-xs font-extrabold bg-amber-400 text-amber-950 shrink-0">Toutes (27)</button>
+                    <button onclick="filterBookCategory('1')" data-book-cat="1" class="book-cat-btn px-3 py-1.5 rounded-xl text-xs font-extrabold bg-red-600 text-white shrink-0">1• Bœuf 10:1</button>
+                    <button onclick="filterBookCategory('2')" data-book-cat="2" class="book-cat-btn px-3 py-1.5 rounded-xl text-xs font-extrabold bg-red-700 text-white shrink-0">2• Bœuf 4:1</button>
+                    <button onclick="filterBookCategory('3')" data-book-cat="3" class="book-cat-btn px-3 py-1.5 rounded-xl text-xs font-extrabold bg-rose-800 text-white shrink-0">3• Bœuf 3:1</button>
+                    <button onclick="filterBookCategory('4')" data-book-cat="4" class="book-cat-btn px-3 py-1.5 rounded-xl text-xs font-extrabold bg-amber-500 text-amber-950 shrink-0">4• Poulet</button>
+                    <button onclick="filterBookCategory('5')" data-book-cat="5" class="book-cat-btn px-3 py-1.5 rounded-xl text-xs font-extrabold bg-emerald-500 text-emerald-950 shrink-0">5• Wraps/Veggie</button>
+                    <button onclick="filterBookCategory('6')" data-book-cat="6" class="book-cat-btn px-3 py-1.5 rounded-xl text-xs font-extrabold bg-sky-500 text-sky-950 shrink-0">6• Poisson</button>
+                </div>
+                <input type="text" id="book-search-input" oninput="renderRecipeBook()" placeholder="Chercher un burger, sauce..." class="bg-black/40 border-2 border-pink-300/40 rounded-xl px-3 py-1.5 text-xs font-bold text-white placeholder-pink-200/60 focus:outline-none focus:border-amber-400 sm:w-64">
+            </div>
+        </div>
+
+        <div id="recipe-book-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Fiches illustrées générées en JS -->
+        </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- MODALE FIN DE SERVICE RUSH                                -->
+    <!-- ========================================================= -->
+    <div id="rush-end-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-gradient-to-b from-purple-900 to-fuchsia-950 border-4 border-amber-400 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl">
+            <div class="text-5xl mb-2">🏆</div>
+            <h3 class="font-cartoon text-3xl text-amber-300 arcade-logo-text">FIN DU RUSH !</h3>
+            <p class="text-sm font-bold text-pink-100 mt-1">Voici ton bilan sur ce service :</p>
+
+            <div class="my-5">
+                <div class="bg-black/40 p-4 rounded-2xl border-2 border-emerald-400/50">
+                    <div class="text-xs font-bold text-emerald-200">Clients Servis</div>
+                    <div id="rush-summary-clients" class="font-cartoon text-4xl text-emerald-400 mt-1">0</div>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="closeRushEndModal(); switchMode('free');" class="btn-glossy flex-1 py-3 rounded-2xl bg-slate-700 text-white font-extrabold text-sm">
+                    Service Libre
+                </button>
+                <button onclick="closeRushEndModal(); startRushSession();" class="btn-glossy flex-1 py-3 rounded-2xl bg-amber-400 text-amber-950 font-black text-sm">
+                    Rejouer Rush !
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- MODALE COMPTE UTILISATEUR & SAUVEGARDE EN LIGNE           -->
+    <!-- ========================================================= -->
+    <div id="auth-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-gradient-to-b from-purple-950 via-fuchsia-950 to-purple-950 border-4 border-pink-400 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative">
+            <button onclick="closeAuthModal()" class="absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white font-black text-sm flex items-center justify-center">✕</button>
+
+            <div class="text-center mb-4">
+                <div class="text-4xl mb-1">👨‍🍳🔐</div>
+                <h3 class="font-cartoon text-2xl text-amber-300 arcade-logo-text">COMPTE & SAUVEGARDE</h3>
+                <p class="text-xs font-bold text-pink-200/90 mt-1">Sauvegarde tes clients servis et tes étoiles sur ton profil</p>
+            </div>
+
+            <!-- Vue quand un utilisateur est connecté -->
+            <div id="auth-logged-in-view" class="hidden flex-col gap-3">
+                <div class="bg-black/40 border-2 border-emerald-400/60 rounded-2xl p-4 text-center">
+                    <div class="text-xs font-bold text-emerald-300 uppercase tracking-wider">Connecté en tant que</div>
+                    <div id="auth-active-name" class="font-cartoon text-2xl text-white mt-0.5">Chef</div>
+                    <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/10 text-xs">
+                        <div>
+                            <div class="text-pink-200/75 font-bold">Clients Servis</div>
+                            <div id="auth-stat-served" class="font-cartoon text-base text-emerald-300">0 ⭐</div>
+                        </div>
+                        <div>
+                            <div class="text-pink-200/75 font-bold">Recettes Acquises</div>
+                            <div id="auth-stat-mastered" class="font-cartoon text-base text-sky-300">0/27</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="auth-sync-status-msg" class="text-center text-xs font-extrabold text-emerald-300">
+                    ✅ Progression synchronisée automatiquement
+                </div>
+
+                <div class="flex gap-2.5 pt-1">
+                    <button onclick="forceSaveCurrentAccount()" class="btn-glossy flex-1 py-2.5 rounded-2xl bg-emerald-500 text-emerald-950 font-black text-xs uppercase tracking-wider">
+                        💾 Sauvegarder
+                    </button>
+                    <button onclick="logoutAccount()" class="btn-glossy flex-1 py-2.5 rounded-2xl bg-rose-600 text-white font-black text-xs uppercase tracking-wider">
+                        🚪 Déconnexion
+                    </button>
+                </div>
+            </div>
+
+            <!-- Vue Connexion / Création de compte -->
+            <div id="auth-form-view">
+                <div class="grid grid-cols-2 gap-1.5 bg-black/40 p-1 rounded-2xl border border-white/15 mb-4">
+                    <button type="button" onclick="switchAuthTab('login')" id="auth-tab-login" class="btn-glossy py-1.5 rounded-xl text-xs font-black bg-amber-400 text-amber-950">
+                        🔑 Se connecter
+                    </button>
+                    <button type="button" onclick="switchAuthTab('register')" id="auth-tab-register" class="py-1.5 rounded-xl text-xs font-black text-pink-100">
+                        ✨ Créer un compte
+                    </button>
+                </div>
+
+                <form onsubmit="handleAuthSubmit(event)" class="flex flex-col gap-3">
+                    <div>
+                        <label class="block text-xs font-extrabold text-pink-200 mb-1">Nom d'utilisateur (Pseudo)</label>
+                        <input type="text" id="auth-input-username" required minlength="3" maxlength="24" placeholder="Ex: ChefAlex" class="w-full bg-black/45 border-2 border-pink-300/50 rounded-xl px-3 py-2 text-sm font-bold text-white placeholder-pink-200/40 focus:outline-none focus:border-amber-400">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-pink-200 mb-1">Mot de passe</label>
+                        <input type="password" id="auth-input-password" required minlength="4" placeholder="••••••••" class="w-full bg-black/45 border-2 border-pink-300/50 rounded-xl px-3 py-2 text-sm font-bold text-white placeholder-pink-200/40 focus:outline-none focus:border-amber-400">
+                    </div>
+
+                    <div id="auth-feedback-box" class="hidden rounded-xl px-3 py-2 text-xs font-extrabold text-center"></div>
+
+                    <button type="submit" id="auth-submit-btn" class="btn-glossy w-full py-3 rounded-2xl bg-amber-400 text-amber-950 font-black text-sm uppercase tracking-wider mt-1">
+                        🚀 Se connecter & charger
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+        import { getAuth, signInAnonymously, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+        import { getFirestore, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+
+        // Initialisation de la base de données pour les comptes joueurs (Cloud + repli local automatique)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'mcdo-rush-kitchen';
+        const LOCAL_ACCOUNTS_DB_KEY = 'mcdo_rush_accounts_registry_v1';
+        let db = null;
+        let auth = null;
+        let cloudReady = false;
+
+        async function initCloudStorage() {
+            try {
+                if (typeof __firebase_config === 'undefined' || !__firebase_config) {
+                    cloudReady = false;
+                    return;
+                }
+                const firebaseConfig = typeof __firebase_config === 'string'
+                    ? JSON.parse(__firebase_config)
+                    : __firebase_config;
+                if (!firebaseConfig || !firebaseConfig.apiKey) {
+                    cloudReady = false;
+                    return;
+                }
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                cloudReady = Boolean(auth && auth.currentUser);
+            } catch (err) {
+                cloudReady = false;
+            }
+        }
+
+        function readLocalAccountsRegistry() {
+            try {
+                const raw = localStorage.getItem(LOCAL_ACCOUNTS_DB_KEY);
+                return raw ? JSON.parse(raw) : {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function writeLocalAccountsRegistry(registry) {
+            try {
+                localStorage.setItem(LOCAL_ACCOUNTS_DB_KEY, JSON.stringify(registry));
+            } catch (e) {}
+        }
+
+        // Hachage SHA-256 du mot de passe avant stockage
+        async function hashPassword(plainText) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(`mcdo_rush_salt_${plainText}`);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function normalizeUsernameKey(name) {
+            return name.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+        }
+
+        window.cloudAccountService = {
+            init: initCloudStorage,
+            async registerUser(displayName, password) {
+                if (!cloudReady) await initCloudStorage();
+                const key = normalizeUsernameKey(displayName);
+                if (key.length < 3) {
+                    throw new Error("Le pseudo doit contenir au moins 3 caractères valides.");
+                }
+
+                const passwordHash = await hashPassword(password);
+                const payload = {
+                    username: displayName.trim(),
+                    usernameKey: key,
+                    passwordHash,
+                    served: window.gameStateRef ? window.gameStateRef.served : 0,
+                    recipeStars: window.gameStateRef ? { ...window.gameStateRef.recipeStars } : {},
+                    updatedAt: Date.now()
+                };
+
+                // 1. Tentative Cloud si disponible
+                if (cloudReady && auth && auth.currentUser && db) {
+                    try {
+                        const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'player_accounts', key);
+                        const existing = await getDoc(userRef);
+                        if (existing.exists()) {
+                            throw new Error("Ce nom d'utilisateur est déjà pris !");
+                        }
+                        await setDoc(userRef, payload);
+                        const localReg = readLocalAccountsRegistry();
+                        localReg[key] = payload;
+                        writeLocalAccountsRegistry(localReg);
+                        return payload;
+                    } catch (err) {
+                        if (err.message === "Ce nom d'utilisateur est déjà pris !") throw err;
+                        cloudReady = false;
+                    }
+                }
+
+                // 2. Sauvegarde locale persistante par compte sur l'appareil
+                const localReg = readLocalAccountsRegistry();
+                if (localReg[key]) {
+                    throw new Error("Ce nom d'utilisateur est déjà pris !");
+                }
+                localReg[key] = payload;
+                writeLocalAccountsRegistry(localReg);
+                return payload;
+            },
+            async loginUser(displayName, password) {
+                if (!cloudReady) await initCloudStorage();
+                const key = normalizeUsernameKey(displayName);
+                const passwordHash = await hashPassword(password);
+
+                // 1. Vérification Cloud si disponible
+                if (cloudReady && auth && auth.currentUser && db) {
+                    try {
+                        const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'player_accounts', key);
+                        const snap = await getDoc(userRef);
+                        if (snap.exists()) {
+                            const data = snap.data();
+                            if (data.passwordHash !== passwordHash) {
+                                throw new Error("Mot de passe incorrect !");
+                            }
+                            const localReg = readLocalAccountsRegistry();
+                            localReg[key] = data;
+                            writeLocalAccountsRegistry(localReg);
+                            return data;
+                        }
+                    } catch (err) {
+                        if (err.message === "Mot de passe incorrect !") throw err;
+                        cloudReady = false;
+                    }
+                }
+
+                // 2. Vérification dans le registre local des comptes
+                const localReg = readLocalAccountsRegistry();
+                const localAccount = localReg[key];
+                if (!localAccount) {
+                    throw new Error("Aucun compte trouvé avec ce pseudo.");
+                }
+                if (localAccount.passwordHash !== passwordHash) {
+                    throw new Error("Mot de passe incorrect !");
+                }
+                return localAccount;
+            },
+            async saveUserProgress(accountData) {
+                if (!accountData || !accountData.usernameKey) return false;
+                const payload = {
+                    username: accountData.username,
+                    usernameKey: accountData.usernameKey,
+                    passwordHash: accountData.passwordHash,
+                    served: accountData.served,
+                    recipeStars: accountData.recipeStars,
+                    updatedAt: Date.now()
+                };
+
+                // Toujours sauvegarder dans le registre local du compte
+                const localReg = readLocalAccountsRegistry();
+                localReg[accountData.usernameKey] = payload;
+                writeLocalAccountsRegistry(localReg);
+
+                // Synchroniser avec le Cloud si disponible
+                if (!cloudReady) await initCloudStorage();
+                if (cloudReady && auth && auth.currentUser && db) {
+                    try {
+                        const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'player_accounts', accountData.usernameKey);
+                        await setDoc(userRef, payload);
+                    } catch (e) {}
+                }
+                return true;
+            }
+        };
+    </script>
+
+    <script>
+        /**
+         * =====================================================================
+         * 1. MOTEUR SONORE CARTOON (Tone.js)
+         * =====================================================================
+         */
+        let soundOn = true;
+        let audioInitialized = false;
+        let popSynth, bellSynth, coinSynth, buzzSynth;
+
+        async function initToneAudio() {
+            if (audioInitialized || typeof Tone === 'undefined') return;
+            try {
+                await Tone.start();
+                popSynth = new Tone.MembraneSynth({
+                    pitchDecay: 0.025,
+                    octaves: 2.5,
+                    envelope: { attack: 0.002, decay: 0.12, sustain: 0 }
+                }).toDestination();
+                popSynth.volume.value = -7;
+
+                bellSynth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: 'triangle' },
+                    envelope: { attack: 0.01, decay: 0.35, sustain: 0.05, release: 0.5 }
+                }).toDestination();
+                bellSynth.volume.value = -5;
+
+                coinSynth = new Tone.Synth({
+                    oscillator: { type: 'sine' },
+                    envelope: { attack: 0.005, decay: 0.25, sustain: 0, release: 0.2 }
+                }).toDestination();
+                coinSynth.volume.value = -6;
+
+                buzzSynth = new Tone.Synth({
+                    oscillator: { type: 'sawtooth' },
+                    envelope: { attack: 0.01, decay: 0.22, sustain: 0, release: 0.1 }
+                }).toDestination();
+                buzzSynth.volume.value = -10;
+
+                audioInitialized = true;
+            } catch (err) {}
+        }
+
+        function toggleSound() {
+            soundOn = !soundOn;
+            document.getElementById('sound-icon').textContent = soundOn ? '🔊' : '🔇';
+            if (soundOn) initToneAudio();
+        }
+
+        function playArcadeSound(kind) {
+            if (!soundOn) return;
+            if (!audioInitialized) {
+                initToneAudio();
+                return;
+            }
+            try {
+                const now = Tone.now();
+                if (kind === 'place') {
+                    popSynth.triggerAttackRelease('D3', '16n', now);
+                } else if (kind === 'sauce') {
+                    popSynth.triggerAttackRelease('A3', '32n', now);
+                } else if (kind === 'toast') {
+                    bellSynth.triggerAttackRelease(['C5', 'G5'], '16n', now);
+                } else if (kind === 'fold') {
+                    popSynth.triggerAttackRelease('F3', '16n', now);
+                    popSynth.triggerAttackRelease('A3', '16n', now + 0.08);
+                } else if (kind === 'serve') {
+                    bellSynth.triggerAttackRelease(['E5', 'G#5', 'B5'], '8n', now);
+                    coinSynth.triggerAttackRelease('B5', '16n', now + 0.12);
+                    coinSynth.triggerAttackRelease('E6', '8n', now + 0.22);
+                } else if (kind === 'error') {
+                    buzzSynth.triggerAttackRelease('E2', '8n', now);
+                }
+            } catch (e) {}
+        }
+
+        /**
+         * =====================================================================
+         * 2. ILLUSTRATIONS SVG STYLE ARCADE (CLIENTS + INGRÉDIENTS)
+         * =====================================================================
+         */
+        const CUSTOMERS = [
+            {
+                name: 'Léa (Étudiante)',
+                svg: (mood) => `
+                    <svg viewBox="0 0 120 120" class="w-full h-full">
+                        <!-- Cheveux châtains chignon -->
+                        <circle cx="60" cy="24" r="16" fill="#7c2d12"/>
+                        <path d="M28 60 Q28 24 60 24 Q92 24 92 60 Z" fill="#9a3412"/>
+                        <!-- Buste uniforme moderne -->
+                        <path d="M26 118 Q30 84 60 84 Q90 84 94 118 Z" fill="#6d28d9" stroke="#3b0764" stroke-width="2.5"/>
+                        <polygon points="48,84 72,84 60,115" fill="#fff"/>
+                        <polygon points="57,86 63,86 65,112 60,117 55,112" fill="#10b981"/>
+                        <!-- Visage -->
+                        <ellipse cx="60" cy="58" rx="24" ry="26" fill="#fed7aa" stroke="#9a3412" stroke-width="2"/>
+                        <!-- Yeux -->
+                        ${mood === 'happy'
+                            ? `<path d="M44 54 Q50 47 56 54" fill="none" stroke="#451a03" stroke-width="3" stroke-linecap="round"/>
+                               <path d="M64 54 Q70 47 76 54" fill="none" stroke="#451a03" stroke-width="3" stroke-linecap="round"/>`
+                            : `<circle cx="50" cy="54" r="4" fill="#451a03"/><circle cx="70" cy="54" r="4" fill="#451a03"/>
+                               <circle cx="51.5" cy="52.5" r="1.4" fill="#fff"/><circle cx="71.5" cy="52.5" r="1.4" fill="#fff"/>`
+                        }
+                        <!-- Joues roses -->
+                        <ellipse cx="43" cy="63" rx="4.5" ry="2.5" fill="#fb7185" opacity="0.6"/>
+                        <ellipse cx="77" cy="63" rx="4.5" ry="2.5" fill="#fb7185" opacity="0.6"/>
+                        <!-- Bouche -->
+                        ${mood === 'sad'
+                            ? `<path d="M52 73 Q60 66 68 73" fill="none" stroke="#9f1239" stroke-width="3" stroke-linecap="round"/>`
+                            : `<path d="M50 68 Q60 78 70 68" fill="#fb7185" stroke="#9f1239" stroke-width="2.5" stroke-linecap="round"/>`
+                        }
+                    </svg>`
+            },
+            {
+                name: 'Chloé (Influenceuse)',
+                svg: (mood) => `
+                    <svg viewBox="0 0 120 120" class="w-full h-full">
+                        <!-- Couettes blondes -->
+                        <circle cx="24" cy="46" r="14" fill="#facc15"/>
+                        <circle cx="96" cy="46" r="14" fill="#facc15"/>
+                        <path d="M30 58 Q30 22 60 22 Q90 22 90 58 Z" fill="#fde047"/>
+                        <!-- Buste -->
+                        <path d="M26 118 Q30 84 60 84 Q90 84 94 118 Z" fill="#ec4899" stroke="#831843" stroke-width="2.5"/>
+                        <path d="M46 84 L60 100 L74 84" fill="#fff"/>
+                        <!-- Visage -->
+                        <ellipse cx="60" cy="58" rx="23" ry="25" fill="#ffedd5" stroke="#b45309" stroke-width="2"/>
+                        <!-- Yeux bleus -->
+                        ${mood === 'happy'
+                            ? `<text x="42" y="57" font-size="14">⭐</text><text x="64" y="57" font-size="14">⭐</text>`
+                            : `<circle cx="50" cy="54" r="4.2" fill="#0284c7"/><circle cx="70" cy="54" r="4.2" fill="#0284c7"/>
+                               <circle cx="51.5" cy="52.5" r="1.5" fill="#fff"/><circle cx="71.5" cy="52.5" r="1.5" fill="#fff"/>`
+                        }
+                        <ellipse cx="43" cy="63" rx="4" ry="2.2" fill="#f43f5e" opacity="0.55"/>
+                        <ellipse cx="77" cy="63" rx="4" ry="2.2" fill="#f43f5e" opacity="0.55"/>
+                        ${mood === 'sad'
+                            ? `<path d="M52 73 Q60 67 68 73" fill="none" stroke="#9f1239" stroke-width="3" stroke-linecap="round"/>`
+                            : `<path d="M51 68 Q60 77 69 68" fill="none" stroke="#be123c" stroke-width="3" stroke-linecap="round"/>`
+                        }
+                    </svg>`
+            },
+            {
+                name: 'Léo (Skateur)',
+                svg: (mood) => `
+                    <svg viewBox="0 0 120 120" class="w-full h-full">
+                        <!-- Buste sweat -->
+                        <path d="M24 118 Q28 84 60 84 Q92 84 96 118 Z" fill="#0ea5e9" stroke="#0c4a6e" stroke-width="2.5"/>
+                        <!-- Visage -->
+                        <ellipse cx="60" cy="58" rx="23" ry="25" fill="#fed7aa" stroke="#9a3412" stroke-width="2"/>
+                        <!-- Casquette à l'envers -->
+                        <path d="M35 44 Q35 22 60 22 Q85 22 85 44 Z" fill="#f97316" stroke="#7c2d12" stroke-width="2"/>
+                        <rect x="44" y="38" width="32" height="7" rx="3.5" fill="#ea580c"/>
+                        <!-- Yeux -->
+                        ${mood === 'happy'
+                            ? `<path d="M44 55 Q50 48 56 55" fill="none" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>
+                               <path d="M64 55 Q70 48 76 55" fill="none" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>`
+                            : `<circle cx="50" cy="55" r="4" fill="#1e293b"/><circle cx="70" cy="55" r="4" fill="#1e293b"/>`
+                        }
+                        ${mood === 'sad'
+                            ? `<path d="M52 73 Q60 67 68 73" fill="none" stroke="#7c2d12" stroke-width="3" stroke-linecap="round"/>`
+                            : `<path d="M50 68 Q60 77 70 68" fill="none" stroke="#7c2d12" stroke-width="3" stroke-linecap="round"/>`
+                        }
+                    </svg>`
+            },
+            {
+                name: 'Marc (Costume-Cravate)',
+                svg: (mood) => `
+                    <svg viewBox="0 0 120 120" class="w-full h-full">
+                        <!-- Costume sombre -->
+                        <path d="M22 118 Q26 83 60 83 Q94 83 98 118 Z" fill="#1e293b" stroke="#0f172a" stroke-width="2.5"/>
+                        <polygon points="48,83 72,83 60,115" fill="#fff"/>
+                        <polygon points="57,85 63,85 65,113 60,117 55,113" fill="#dc2626"/>
+                        <!-- Visage -->
+                        <ellipse cx="60" cy="57" rx="23" ry="26" fill="#fde68a" stroke="#92400e" stroke-width="2"/>
+                        <!-- Cheveux coiffés -->
+                        <path d="M36 46 Q36 22 60 22 Q84 22 84 46 Q72 34 60 36 Q48 34 36 46 Z" fill="#334155"/>
+                        <!-- Lunettes -->
+                        <rect x="41" y="49" width="16" height="11" rx="3" fill="none" stroke="#0f172a" stroke-width="2"/>
+                        <rect x="63" y="49" width="16" height="11" rx="3" fill="none" stroke="#0f172a" stroke-width="2"/>
+                        <line x1="57" y1="54" x2="63" y2="54" stroke="#0f172a" stroke-width="2"/>
+                        <circle cx="49" cy="54.5" r="3" fill="#0f172a"/>
+                        <circle cx="71" cy="54.5" r="3" fill="#0f172a"/>
+                        ${mood === 'sad'
+                            ? `<path d="M52 73 Q60 67 68 73" fill="none" stroke="#78350f" stroke-width="3" stroke-linecap="round"/>`
+                            : `<path d="M51 69 Q60 76 69 69" fill="none" stroke="#78350f" stroke-width="3" stroke-linecap="round"/>`
+                        }
+                    </svg>`
+            }
+        ];
+
+        function getIngredientSVG(ing) {
+            if (ing.id.includes('tortilla')) {
+                return `<svg viewBox="0 0 80 26" class="w-14 h-5 mx-auto"><ellipse cx="40" cy="13" rx="35" ry="9" fill="#fef08a" stroke="#ca8a04" stroke-width="2"/><circle cx="26" cy="12" r="1.5" fill="#a16207" opacity="0.5"/><circle cx="53" cy="14" r="1.5" fill="#a16207" opacity="0.5"/></svg>`;
+            }
+            if (ing.id.includes('muffin')) {
+                return `<svg viewBox="0 0 80 26" class="w-14 h-5 mx-auto"><rect x="10" y="5" width="60" height="16" rx="8" fill="#d97706" stroke="#fde68a" stroke-width="2"/><ellipse cx="40" cy="13" rx="22" ry="4" fill="#fef3c7" opacity="0.6"/></svg>`;
+            }
+            if (ing.id.includes('vapeur')) {
+                return `<svg viewBox="0 0 80 26" class="w-14 h-5 mx-auto"><path d="M10 19 Q10 5 40 5 Q70 5 70 19 Z" fill="#fef9c3" stroke="#eab308" stroke-width="2"/></svg>`;
+            }
+            if (ing.type === 'bread') {
+                return `<svg viewBox="0 0 80 26" class="w-14 h-5 mx-auto"><path d="M8 20 Q8 4 40 4 Q72 4 72 20 Z" fill="#d97706" stroke="#fde68a" stroke-width="2"/><ellipse cx="28" cy="10" rx="2.2" ry="1.1" fill="#fef3c7"/><ellipse cx="40" cy="8" rx="2.2" ry="1.1" fill="#fef3c7"/><ellipse cx="52" cy="10" rx="2.2" ry="1.1" fill="#fef3c7"/></svg>`;
+            }
+            if (ing.type === 'sauce') {
+                let bottleColor = '#ef4444';
+                if (ing.id.includes('moutarde')) bottleColor = '#facc15';
+                else if (ing.id.includes('mac')) bottleColor = '#fb923c';
+                else if (ing.id.includes('tasty') || ing.id.includes('promo2')) bottleColor = '#f97316';
+                else if (ing.id.includes('deluxe')) bottleColor = '#fde047';
+                else if (ing.id.includes('ranch') || ing.id.includes('mcchicken') || ing.id.includes('cbo') || ing.id.includes('filet')) bottleColor = '#f8fafc';
+
+                return `<svg viewBox="0 0 44 56" class="w-8 h-10 mx-auto drop-shadow">
+                    <polygon points="18,2 26,2 24,13 20,13" fill="${bottleColor}" stroke="#1e293b" stroke-width="2"/>
+                    <rect x="13" y="13" width="18" height="6" rx="2" fill="#334155"/>
+                    <rect x="10" y="19" width="24" height="33" rx="7" fill="${bottleColor}" stroke="#1e293b" stroke-width="2.2"/>
+                    <rect x="14" y="27" width="16" height="14" rx="3" fill="#fff" opacity="0.85"/>
+                </svg>`;
+            }
+            if (ing.id.includes('salade')) {
+                return `<svg viewBox="0 0 80 24" class="w-14 h-5 mx-auto"><path d="M8 15 Q16 4 26 13 Q36 3 46 13 Q56 4 66 13 Q74 8 74 17 Q40 22 8 15 Z" fill="#4ade80" stroke="#15803d" stroke-width="2"/></svg>`;
+            }
+            if (ing.id === 'tomate_1') {
+                return `<svg viewBox="0 0 80 24" class="w-14 h-5 mx-auto"><ellipse cx="40" cy="12" rx="18" ry="8" fill="#ef4444" stroke="#fecaca" stroke-width="2"/><circle cx="35" cy="11" r="1.5" fill="#fecaca" opacity="0.7"/><circle cx="45" cy="13" r="1.5" fill="#fecaca" opacity="0.7"/></svg>`;
+            }
+            if (ing.id.includes('tomate')) {
+                return `<svg viewBox="0 0 80 24" class="w-14 h-5 mx-auto"><ellipse cx="28" cy="12" rx="16" ry="7" fill="#ef4444" stroke="#fecaca" stroke-width="2"/><ellipse cx="52" cy="12" rx="16" ry="7" fill="#dc2626" stroke="#fecaca" stroke-width="2"/></svg>`;
+            }
+            if (ing.id === 'cornichons_1') {
+                return `<svg viewBox="0 0 80 24" class="w-14 h-5 mx-auto"><ellipse cx="40" cy="12" rx="14" ry="7" fill="#65a30d" stroke="#d9f99d" stroke-width="2"/><circle cx="37" cy="11" r="1.2" fill="#d9f99d" opacity="0.8"/><circle cx="43" cy="13" r="1.2" fill="#d9f99d" opacity="0.8"/></svg>`;
+            }
+            if (ing.id.includes('cornichon')) {
+                return `<svg viewBox="0 0 80 24" class="w-14 h-5 mx-auto"><ellipse cx="28" cy="12" rx="12" ry="6" fill="#65a30d" stroke="#d9f99d" stroke-width="2"/><ellipse cx="52" cy="12" rx="12" ry="6" fill="#65a30d" stroke="#d9f99d" stroke-width="2"/></svg>`;
+            }
+            if (ing.id.includes('oignons_frits')) {
+                return `<svg viewBox="0 0 80 24" class="w-14 h-5 mx-auto"><path d="M16 15 L26 8 L36 16 L46 7 L56 15 L64 9" fill="none" stroke="#f59e0b" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+            }
+            if (ing.id.includes('oignons_frais')) {
+                return `<svg viewBox="0 0 80 24" class="w-14 h-5 mx-auto"><path d="M18 15 Q30 5 42 15 M38 15 Q50 5 62 15" fill="none" stroke="#f3e8ff" stroke-width="4" stroke-linecap="round"/></svg>`;
+            }
+            if (ing.id === 'bacon') {
+                return `<svg viewBox="0 0 80 24" class="w-14 h-5 mx-auto"><path d="M12 9 Q28 4 44 9 T68 9" fill="none" stroke="#be123c" stroke-width="5" stroke-linecap="round"/><path d="M12 16 Q28 11 44 16 T68 16" fill="none" stroke="#fda4af" stroke-width="3.5" stroke-linecap="round"/></svg>`;
+            }
+            if (ing.id === 'jalapenos') {
+                return `<svg viewBox="0 0 80 24" class="w-14 h-5 mx-auto">
+                    <circle cx="26" cy="12" r="7" fill="#15803d" stroke="#86efac" stroke-width="2"/>
+                    <circle cx="26" cy="12" r="2.8" fill="#bbf7d0"/>
+                    <circle cx="52" cy="12" r="7" fill="#166534" stroke="#86efac" stroke-width="2"/>
+                    <circle cx="52" cy="12" r="2.8" fill="#bbf7d0"/>
+                </svg>`;
+            }
+            if (ing.type === 'cheese') {
+                let fill = '#fb923c';
+                if (ing.id.includes('emmental')) fill = '#fef9c3';
+                else if (ing.id.includes('gouda')) fill = '#fde68a';
+                return `<svg viewBox="0 0 80 22" class="w-14 h-5 mx-auto"><polygon points="10,6 70,6 76,16 4,16" fill="${fill}" stroke="#ca8a04" stroke-width="2"/></svg>`;
+            }
+            if (ing.id === 'filet_poisson') {
+                return `<svg viewBox="0 0 80 26" class="w-14 h-5 mx-auto"><rect x="14" y="4" width="52" height="18" rx="5" fill="#d97706" stroke="#fde68a" stroke-width="2"/></svg>`;
+            }
+            if (ing.id === 'poulet_wrap_1') {
+                return `<svg viewBox="0 0 80 26" class="w-14 h-5 mx-auto">
+                    <path d="M16 14 Q22 7 38 9 Q54 7 64 13 Q58 20 40 19 Q22 20 16 14 Z" fill="#f59e0b" stroke="#fde047" stroke-width="2"/>
+                    <circle cx="30" cy="13" r="1.3" fill="#b45309"/>
+                    <circle cx="44" cy="14" r="1.3" fill="#b45309"/>
+                    <circle cx="53" cy="12" r="1.2" fill="#fef08a"/>
+                </svg>`;
+            }
+            if (ing.id === 'poulet_wrap_2') {
+                return `<svg viewBox="0 0 80 26" class="w-14 h-5 mx-auto">
+                    <path d="M8 15 Q16 8 30 10 Q42 9 46 14 Q40 20 26 19 Q12 20 8 15 Z" fill="#f59e0b" stroke="#fde047" stroke-width="1.8"/>
+                    <path d="M34 12 Q44 6 58 8 Q70 7 73 13 Q67 19 52 18 Q38 19 34 12 Z" fill="#d97706" stroke="#fef08a" stroke-width="1.8"/>
+                    <circle cx="22" cy="14" r="1.2" fill="#78350f"/>
+                    <circle cx="54" cy="12" r="1.2" fill="#78350f"/>
+                </svg>`;
+            }
+            if (ing.id === 'nuggets_veggie_2') {
+                return `<svg viewBox="0 0 80 26" class="w-14 h-5 mx-auto">
+                    <rect x="14" y="5" width="22" height="16" rx="7" fill="#eab308" stroke="#fef08a" stroke-width="1.8"/>
+                    <circle cx="22" cy="11" r="1.5" fill="#65a30d"/>
+                    <circle cx="29" cy="15" r="1.3" fill="#65a30d"/>
+                    <rect x="44" y="5" width="22" height="16" rx="7" fill="#eab308" stroke="#fef08a" stroke-width="1.8"/>
+                    <circle cx="52" cy="14" r="1.5" fill="#65a30d"/>
+                    <circle cx="59" cy="10" r="1.3" fill="#65a30d"/>
+                </svg>`;
+            }
+            if (ing.id === 'nuggets_veggie_4') {
+                return `<svg viewBox="0 0 80 26" class="w-14 h-5 mx-auto">
+                    <rect x="6" y="6" width="15" height="14" rx="5.5" fill="#eab308" stroke="#fef08a" stroke-width="1.5"/>
+                    <circle cx="13" cy="12" r="1.3" fill="#65a30d"/>
+                    <rect x="24" y="5" width="15" height="15" rx="5.5" fill="#ca8a04" stroke="#fef08a" stroke-width="1.5"/>
+                    <circle cx="31" cy="13" r="1.3" fill="#84cc16"/>
+                    <rect x="42" y="6" width="15" height="14" rx="5.5" fill="#eab308" stroke="#fef08a" stroke-width="1.5"/>
+                    <circle cx="49" cy="11" r="1.3" fill="#65a30d"/>
+                    <rect x="60" y="5" width="15" height="15" rx="5.5" fill="#ca8a04" stroke="#fef08a" stroke-width="1.5"/>
+                    <circle cx="67" cy="13" r="1.3" fill="#84cc16"/>
+                </svg>`;
+            }
+            if (ing.id === 'poulet_mcchicken') {
+                return `<svg viewBox="0 0 80 26" class="w-14 h-5 mx-auto">
+                    <ellipse cx="40" cy="13" rx="26" ry="10" fill="#f59e0b" stroke="#fef08a" stroke-width="2"/>
+                    <circle cx="27" cy="11" r="1.5" fill="#b45309"/>
+                    <circle cx="38" cy="9" r="1.4" fill="#fef3c7"/>
+                    <circle cx="47" cy="14" r="1.6" fill="#b45309"/>
+                    <circle cx="33" cy="16" r="1.3" fill="#fef3c7"/>
+                    <circle cx="54" cy="11" r="1.3" fill="#b45309"/>
+                </svg>`;
+            }
+            if (ing.id.includes('poulet') || ing.id.includes('chicken')) {
+                return `<svg viewBox="0 0 80 26" class="w-14 h-5 mx-auto"><rect x="12" y="4" width="56" height="18" rx="9" fill="#d97706" stroke="#fef08a" stroke-width="2"/><circle cx="28" cy="11" r="1.4" fill="#fef3c7"/><circle cx="50" cy="14" r="1.4" fill="#fef3c7"/></svg>`;
+            }
+            return `<svg viewBox="0 0 80 26" class="w-14 h-5 mx-auto"><rect x="10" y="4" width="60" height="18" rx="9" fill="#6b3e26" stroke="#c89d7c" stroke-width="2"/><circle cx="26" cy="11" r="1.6" fill="#fef3c7"/><circle cx="42" cy="14" r="1.6" fill="#fef3c7"/><circle cx="54" cy="10" r="1.6" fill="#fef3c7"/></svg>`;
+        }
+
+        /**
+         * =====================================================================
+         * 3. CATALOGUE DES INGRÉDIENTS
+         * =====================================================================
+         */
+        const INGREDIENTS = {
+            // Pains & Wraps
+            pain_reg: { id: 'pain_reg', name: 'Pain Reg', sub: 'Base', type: 'bread', color: 'bg-amber-500 border-amber-200 text-amber-950' },
+            pain_reg_vapeur: { id: 'pain_reg_vapeur', name: 'Pain Reg Filet', sub: 'Filet', type: 'bread', color: 'bg-amber-100 border-amber-400 text-amber-950' },
+            pain_mac: { id: 'pain_mac', name: 'Pain Mac (3x)', sub: 'Big Mac', type: 'bread', color: 'bg-amber-500 border-amber-200 text-amber-950' },
+            pain_royal: { id: 'pain_royal', name: 'Pain Royal', sub: 'Royal', type: 'bread', color: 'bg-amber-600 border-amber-200 text-white' },
+            pain_big_arch: { id: 'pain_big_arch', name: 'Pain Big Arch', sub: 'Big Arch', type: 'bread', color: 'bg-amber-700 border-amber-300 text-white' },
+            pain_280: { id: 'pain_280', name: 'Pain 280', sub: '280', type: 'bread', color: 'bg-orange-600 border-orange-200 text-white' },
+            pain_cbo: { id: 'pain_cbo', name: 'Pain CBO', sub: 'CBO', type: 'bread', color: 'bg-amber-700 border-amber-200 text-white' },
+            grande_tortilla: { id: 'grande_tortilla', name: 'Grande Tortilla', sub: 'Grand Wrap', type: 'bread', color: 'bg-yellow-200 border-yellow-500 text-yellow-950' },
+            petite_tortilla: { id: 'petite_tortilla', name: 'Petite Tortilla', sub: "P'tit Wrap", type: 'bread', color: 'bg-yellow-100 border-yellow-400 text-yellow-950' },
+
+            // Sauces
+            ketchup: { id: 'ketchup', name: 'Ketchup', sub: 'Rouge', type: 'sauce', color: 'bg-red-600 border-red-200 text-white' },
+            moutarde: { id: 'moutarde', name: 'Moutarde', sub: 'Jaune', type: 'sauce', color: 'bg-yellow-400 border-yellow-100 text-yellow-950' },
+            sauce_mac: { id: 'sauce_mac', name: 'Sauce Mac', sub: 'Big Mac', type: 'sauce', color: 'bg-orange-300 border-orange-500 text-orange-950' },
+            sauce_deluxe: { id: 'sauce_deluxe', name: 'Sauce Deluxe', sub: 'Deluxe', type: 'sauce', color: 'bg-amber-200 border-amber-500 text-amber-950' },
+            sauce_tasty: { id: 'sauce_tasty', name: 'Sauce Tasty', sub: 'Big Tasty', type: 'sauce', color: 'bg-orange-200 border-orange-500 text-orange-950' },
+            sauce_ranch: { id: 'sauce_ranch', name: 'Sauce Ranch', sub: 'Ranch', type: 'sauce', color: 'bg-slate-100 border-slate-400 text-slate-900' },
+            sauce_mcchicken: { id: 'sauce_mcchicken', name: 'Sauce McChicken', sub: 'Blanche', type: 'sauce', color: 'bg-yellow-100 border-yellow-400 text-slate-900' },
+            sauce_cbo: { id: 'sauce_cbo', name: 'Sauce CBO', sub: 'CBO / Wrap', type: 'sauce', color: 'bg-stone-200 border-stone-500 text-stone-900' },
+            sauce_promo2: { id: 'sauce_promo2', name: 'Sauce Promo 2', sub: 'McExtreme', type: 'sauce', color: 'bg-amber-500 border-amber-200 text-amber-950' },
+            sauce_filet: { id: 'sauce_filet', name: 'Sauce Filet', sub: 'Tartare', type: 'sauce', color: 'bg-sky-100 border-sky-400 text-sky-950' },
+
+            // Garnitures & Légumes
+            salade_mac: { id: 'salade_mac', name: 'Salade Mac', sub: 'Iceberg', type: 'topping', color: 'bg-emerald-400 border-emerald-100 text-emerald-950' },
+            salade_batavia: { id: 'salade_batavia', name: 'Salade Batavia', sub: 'Feuilles Wrap', type: 'topping', color: 'bg-green-500 border-green-100 text-green-950' },
+            oignons_frais: { id: 'oignons_frais', name: 'Oignons frais', sub: 'Lamelles', type: 'topping', color: 'bg-purple-200 border-purple-500 text-purple-950' },
+            oignons_frits: { id: 'oignons_frits', name: 'Oignons frits', sub: 'Croustillants', type: 'topping', color: 'bg-amber-400 border-amber-100 text-amber-950' },
+            jalapenos: { id: 'jalapenos', name: 'Jalapeños', sub: 'Piments verts', type: 'topping', color: 'bg-green-700 border-lime-300 text-white' },
+            cornichons_1: { id: 'cornichons_1', name: '1 Cornichon', sub: '1 rondelle', type: 'topping', color: 'bg-lime-500 border-lime-100 text-lime-950' },
+            cornichons_2: { id: 'cornichons_2', name: '2 Cornichons', sub: '2 rondelles', type: 'topping', color: 'bg-lime-600 border-lime-200 text-white' },
+            tomate_1: { id: 'tomate_1', name: '1 Tomate', sub: '1 tranche', type: 'topping', color: 'bg-rose-500 border-rose-200 text-white' },
+            tomate_2: { id: 'tomate_2', name: '2 Tomates', sub: '2 tranches', type: 'topping', color: 'bg-rose-600 border-rose-200 text-white' },
+            bacon: { id: 'bacon', name: 'Bacon (2x)', sub: 'Tranches grillées', type: 'topping', color: 'bg-rose-800 border-rose-300 text-white' },
+
+            // Fromages
+            cheddar_demi: { id: 'cheddar_demi', name: '1/2 Cheddar', sub: 'Demi-tranche', type: 'cheese', color: 'bg-orange-400 border-orange-100 text-orange-950' },
+            cheddar_1: { id: 'cheddar_1', name: '1 Cheddar', sub: '1 tranche', type: 'cheese', color: 'bg-orange-400 border-orange-100 text-orange-950' },
+            cheddar_2: { id: 'cheddar_2', name: '2 Cheddars', sub: '2 tranches', type: 'cheese', color: 'bg-orange-500 border-orange-100 text-white' },
+            emmental_1: { id: 'emmental_1', name: '1 White Cheddar', sub: 'Fromage blanc', type: 'cheese', color: 'bg-yellow-100 border-yellow-400 text-slate-900' },
+            gouda_1: { id: 'gouda_1', name: '1 Gouda', sub: 'Tranche Gouda', type: 'cheese', color: 'bg-amber-200 border-amber-500 text-amber-950' },
+
+            // Protéines (UHC) — Disposition 4:1 puis 10:1, sans œuf
+            viande_4_1: { id: 'viande_4_1', name: 'Steak 4:1', sub: 'Royal / Tasty', type: 'protein', color: 'bg-yellow-500 border-yellow-200 text-yellow-950', uhcClass: 'bg-yellow-500 hover:bg-yellow-400 border-yellow-200 text-yellow-950' },
+            viande_10_1: { id: 'viande_10_1', name: 'Steak 10:1', sub: 'Petit bœuf+oig.', type: 'protein', color: 'bg-red-600 border-red-200 text-white', uhcClass: 'bg-red-600 hover:bg-red-500 border-red-200 text-white' },
+            viande_3_1: { id: 'viande_3_1', name: 'Steak 3:1', sub: '280 / McExtreme', type: 'protein', color: 'bg-slate-600 border-slate-300 text-white', uhcClass: 'bg-slate-600 hover:bg-slate-500 border-slate-300 text-white' },
+            poulet_mcchicken: { id: 'poulet_mcchicken', name: 'Poulet McChicken', sub: 'Pané rond', type: 'protein', color: 'bg-green-500 border-lime-200 text-white', uhcClass: 'bg-green-500 hover:bg-green-400 border-lime-200 text-white' },
+            poulet_ptit_chicken_2: { id: 'poulet_ptit_chicken_2', name: '2x BM', sub: 'Deal Chicken', type: 'protein', color: 'bg-yellow-300/60 border-yellow-200 text-white', uhcClass: 'bg-yellow-300/45 hover:bg-yellow-300/60 border-yellow-200 text-white' },
+            poulet_cbo: { id: 'poulet_cbo', name: 'Poulet CBO', sub: 'Filet pané CBO', type: 'protein', color: 'bg-red-600 border-red-200 text-white', uhcClass: 'bg-red-600 hover:bg-red-500 border-red-200 text-white' },
+            poulet_wrap_1: { id: 'poulet_wrap_1', name: '1 Poulet Wrap', sub: "P'tit Wrap", type: 'protein', color: 'bg-neutral-900 border-neutral-400 text-white', uhcClass: 'bg-neutral-900 hover:bg-neutral-800 border-neutral-400 text-white' },
+            poulet_wrap_2: { id: 'poulet_wrap_2', name: '2 Poulet Wrap', sub: 'McWrap NY', type: 'protein', color: 'bg-neutral-900 border-neutral-400 text-white', uhcClass: 'bg-neutral-900 hover:bg-neutral-800 border-neutral-400 text-white' },
+            nuggets_veggie_2: { id: 'nuggets_veggie_2', name: '2 Nuggets Veggie', sub: "P'tit Wrap Veggie", type: 'protein', color: 'bg-yellow-100 border-yellow-300 text-amber-950', uhcClass: 'bg-yellow-100 hover:bg-yellow-50 border-yellow-300 text-amber-950' },
+            nuggets_veggie_4: { id: 'nuggets_veggie_4', name: '4 Nuggets Veggie', sub: 'McWrap Veggie', type: 'protein', color: 'bg-yellow-100 border-yellow-300 text-amber-950', uhcClass: 'bg-yellow-100 hover:bg-yellow-50 border-yellow-300 text-amber-950' },
+            filet_poisson: { id: 'filet_poisson', name: 'Filet de Poisson', sub: 'Pané carré', type: 'protein', color: 'bg-sky-600 border-sky-200 text-white', uhcClass: 'bg-sky-600 hover:bg-sky-500 border-sky-200 text-white' }
+        };
+
+        /**
+         * =====================================================================
+         * 4. LES 27 RECETTES OFFICIELLES COMPLÈTES (SEPTEMBRE 2026)
+         * =====================================================================
+         */
+        const RECIPES = [
+            // 1. BŒUF 10:1
+            {
+                id: 'big_mac',
+                name: 'BIG MAC',
+                category: '1',
+                categoryLabel: '1 • BŒUF 10:1',
+                catColor: 'bg-red-600',
+                isDualBigMac: true,
+                note: 'Pain Mac • Montage parallèle Talon + Centre : Sauce Mac (x2) • Salade Mac (x2) • 2 Cornichons (Centre) + 1 Cheddar (Talon) • 10:1 (x2) • Fermeture manuelle',
+                steps: ['pain_mac', 'sauce_mac', 'salade_mac', 'cornichons_2', 'cheddar_1', 'viande_10_1']
+            },
+            { id: 'hamburger', name: 'HAMBURGER', category: '1', categoryLabel: '1 • BŒUF 10:1', catColor: 'bg-red-600', note: 'Pain Reg • Moutarde • Ketchup • 1 Cornichon • Steak 10:1', steps: ['pain_reg', 'moutarde', 'ketchup', 'cornichons_1', 'viande_10_1'] },
+            { id: 'cheeseburger', name: 'CHEESEBURGER', category: '1', categoryLabel: '1 • BŒUF 10:1', catColor: 'bg-red-600', note: 'Pain Reg • Moutarde • Ketchup • 1 Cornichon • 1 Cheddar • Steak 10:1', steps: ['pain_reg', 'moutarde', 'ketchup', 'cornichons_1', 'cheddar_1', 'viande_10_1'] },
+            { id: 'double_cheese', name: 'DOUBLE CHEESEBURGER', category: '1', categoryLabel: '1 • BŒUF 10:1', catColor: 'bg-red-600', note: 'Pain Reg • Moutarde • Ketchup • 2 Cornichons • 1 Cheddar • 10:1 • 1 Cheddar • 10:1', steps: ['pain_reg', 'moutarde', 'ketchup', 'cornichons_2', 'cheddar_1', 'viande_10_1', 'cheddar_1', 'viande_10_1'] },
+            { id: 'double_cheese_bacon', name: 'DOUBLE CHEESE BACON', category: '1', categoryLabel: '1 • BŒUF 10:1', catColor: 'bg-red-600', note: 'Pain Reg • Moutarde • Ketchup • 2 Cornichons • 1 Cheddar • Bacon • 10:1 • 1 Cheddar • 10:1', steps: ['pain_reg', 'moutarde', 'ketchup', 'cornichons_2', 'cheddar_1', 'bacon', 'viande_10_1', 'cheddar_1', 'viande_10_1'] },
+            { id: 'deal_boeuf', name: 'DEAL BŒUF', category: '1', categoryLabel: '1 • BŒUF 10:1', catColor: 'bg-red-600', note: 'Pain Reg • Ketchup • Sauce Ranch • Salade Mac • Steak 10:1 • 1 Cheddar • Steak 10:1', steps: ['pain_reg', 'ketchup', 'sauce_ranch', 'salade_mac', 'viande_10_1', 'cheddar_1', 'viande_10_1'] },
+
+            // 2. BŒUF 4:1
+            { id: 'royal_cheese', name: 'ROYAL CHEESE', category: '2', categoryLabel: '2 • BŒUF 4:1', catColor: 'bg-red-700', note: 'Pain Royal • Moutarde • Ketchup • Oignons frais • 2 Cornichons • 1 Cheddar • Steak 4:1 • 1 Cheddar', steps: ['pain_royal', 'moutarde', 'ketchup', 'oignons_frais', 'cornichons_2', 'cheddar_1', 'viande_4_1', 'cheddar_1'] },
+            { id: 'royal_bacon', name: 'ROYAL BACON', category: '2', categoryLabel: '2 • BŒUF 4:1', catColor: 'bg-red-700', note: 'Pain Royal • Moutarde • Ketchup • Oignons frais • 2 Cornichons • Bacon • Steak 4:1 • 1 Cheddar', steps: ['pain_royal', 'moutarde', 'ketchup', 'oignons_frais', 'cornichons_2', 'bacon', 'viande_4_1', 'cheddar_1'] },
+            { id: 'royal_deluxe', name: 'ROYAL DELUXE', category: '2', categoryLabel: '2 • BŒUF 4:1', catColor: 'bg-red-700', note: 'Pain Royal • Sauce Deluxe • Oignons frais • Salade Mac • Tomate • 1 Cheddar • Steak 4:1', steps: ['pain_royal', 'sauce_deluxe', 'oignons_frais', 'salade_mac', 'tomate_1', 'cheddar_1', 'viande_4_1'] },
+            { id: 'big_tasty_1v', name: 'BIG TASTY 1 VIANDE', category: '2', categoryLabel: '2 • BŒUF 4:1', catColor: 'bg-red-700', note: 'Pain Big Arch • Sauce Tasty • Oignons frais • Salade Mac • 2 Tomates • White Cheddar • Steak 4:1 • White Cheddar', steps: ['pain_big_arch', 'sauce_tasty', 'oignons_frais', 'salade_mac', 'tomate_2', 'emmental_1', 'viande_4_1', 'emmental_1'] },
+            { id: 'big_tasty_2v', name: 'BIG TASTY 2 VIANDES', category: '2', categoryLabel: '2 • BŒUF 4:1', catColor: 'bg-red-700', note: 'Pain Big Arch • Sauce Tasty • Oignons frais • Salade Mac • 2 Tomates • White Cheddar • 4:1 • 4:1 • White Cheddar', steps: ['pain_big_arch', 'sauce_tasty', 'oignons_frais', 'salade_mac', 'tomate_2', 'emmental_1', 'viande_4_1', 'viande_4_1', 'emmental_1'] },
+
+            // 3. BŒUF 3:1
+            { id: 'mcextreme_1v', name: 'McEXTREME 1 VIANDE', category: '3', categoryLabel: '3 • BŒUF 3:1', catColor: 'bg-rose-800', note: 'Pain Big Arch • Sauce Promo 2 • Oignons frais • Bacon • Gouda • Steak 3:1 • Gouda', steps: ['pain_big_arch', 'sauce_promo2', 'oignons_frais', 'bacon', 'gouda_1', 'viande_3_1', 'gouda_1'] },
+            { id: 'mcextreme_2v', name: 'McEXTREME 2 VIANDES', category: '3', categoryLabel: '3 • BŒUF 3:1', catColor: 'bg-rose-800', note: 'Pain Big Arch • Sauce Promo 2 • Oignons frais • Bacon • Gouda • 3:1 • Gouda • 3:1', steps: ['pain_big_arch', 'sauce_promo2', 'oignons_frais', 'bacon', 'gouda_1', 'viande_3_1', 'gouda_1', 'viande_3_1'] },
+            { id: 'burger_280', name: '280', category: '3', categoryLabel: '3 • BŒUF 3:1', catColor: 'bg-rose-800', note: 'Pain 280 • Ketchup • Sauce McChicken • Oignons frais • 2 Tomates • 2 Cheddar • Steak 3:1 • White Cheddar', steps: ['pain_280', 'ketchup', 'sauce_mcchicken', 'oignons_frais', 'tomate_2', 'cheddar_2', 'viande_3_1', 'emmental_1'] },
+
+            // 4. POULET
+            { id: 'mcchicken', name: 'McCHICKEN', category: '4', categoryLabel: '4 • POULET', catColor: 'bg-amber-500 text-amber-950', note: 'Pain Royal • Sauce McChicken • Salade Mac • Poulet McChicken', steps: ['pain_royal', 'sauce_mcchicken', 'salade_mac', 'poulet_mcchicken'] },
+            { id: 'deal_chicken', name: 'DEAL CHICKEN', category: '4', categoryLabel: '4 • POULET', catColor: 'bg-amber-500 text-amber-950', note: 'Pain Reg • Ketchup • Sauce Ranch • Salade Mac • 2x BM', steps: ['pain_reg', 'ketchup', 'sauce_ranch', 'salade_mac', 'poulet_ptit_chicken_2'] },
+            { id: 'cbo', name: 'CBO', category: '4', categoryLabel: '4 • POULET', catColor: 'bg-amber-500 text-amber-950', note: 'Pain CBO • Sauce CBO • Oignons frits • Salade Mac • Bacon • 1 Cheddar • Poulet CBO', steps: ['pain_cbo', 'sauce_cbo', 'oignons_frits', 'salade_mac', 'bacon', 'cheddar_1', 'poulet_cbo'] },
+
+            // 5. WRAPS & VEGGIE
+            { id: 'mcwrap_ny', name: 'McWRAP NEW YORK', category: '5', categoryLabel: '5 • WRAPS / VEGGIE', catColor: 'bg-emerald-600', isWrap: true, note: 'Grande Tortilla • Sauce CBO • Salade Batavia • 2 Tomates • 1 Cheddar • Bacon • 2 Poulet Wrap', steps: ['grande_tortilla', 'sauce_cbo', 'salade_batavia', 'tomate_2', 'cheddar_1', 'bacon', 'poulet_wrap_2'] },
+            { id: 'mcwrap_veggie', name: 'McWRAP VEGGIE', category: '5', categoryLabel: '5 • WRAPS / VEGGIE', catColor: 'bg-emerald-600', isWrap: true, note: 'Grande Tortilla • Sauce CBO • Oignons frits • Salade Batavia • 2 Tomates • 1 Cheddar • 4 Nuggets Veggie', steps: ['grande_tortilla', 'sauce_cbo', 'oignons_frits', 'salade_batavia', 'tomate_2', 'cheddar_1', 'nuggets_veggie_4'] },
+            { id: 'ptit_wrap_poulet_ranch', name: "P'TIT WRAP POULET RANCH", category: '5', categoryLabel: '5 • WRAPS / VEGGIE', catColor: 'bg-emerald-600', isWrap: true, note: 'Petite Tortilla • Sauce Ranch • Oignons frits • Salade Mac • 1/2 Cheddar • 1 Poulet Wrap', steps: ['petite_tortilla', 'sauce_ranch', 'oignons_frits', 'salade_mac', 'cheddar_demi', 'poulet_wrap_1'] },
+            { id: 'ptit_wrap_veggie_ranch', name: "P'TIT WRAP VEGGIE RANCH", category: '5', categoryLabel: '5 • WRAPS / VEGGIE', catColor: 'bg-emerald-600', isWrap: true, note: 'Petite Tortilla • Sauce Ranch • Oignons frits • Salade Mac • 1/2 Cheddar • 2 Nuggets Veggie', steps: ['petite_tortilla', 'sauce_ranch', 'oignons_frits', 'salade_mac', 'cheddar_demi', 'nuggets_veggie_2'] },
+
+            // 6. POISSON
+            { id: 'mcfish_ketchup', name: 'McFISH / KETCHUP', category: '6', categoryLabel: '6 • POISSON', catColor: 'bg-sky-600', note: 'Pain Reg • Ketchup • Filet de Poisson', steps: ['pain_reg', 'ketchup', 'filet_poisson'] },
+            { id: 'filet_o_fish', name: 'FILET-O-FISH', category: '6', categoryLabel: '6 • POISSON', catColor: 'bg-sky-600', note: 'Pain Reg Filet • Sauce Filet • Filet de Poisson • 1/2 Cheddar', steps: ['pain_reg_vapeur', 'sauce_filet', 'filet_poisson', 'cheddar_demi'] },
+            { id: 'double_filet_o_fish', name: 'DOUBLE FILET-O-FISH', category: '6', categoryLabel: '6 • POISSON', catColor: 'bg-sky-600', note: 'Pain Reg Filet • Sauce Filet • Filet de Poisson • 1 Cheddar • Filet de Poisson', steps: ['pain_reg_vapeur', 'sauce_filet', 'filet_poisson', 'cheddar_1', 'filet_poisson'] },
+            { id: 'deal_poisson', name: 'DEAL POISSON', category: '6', categoryLabel: '6 • POISSON', catColor: 'bg-sky-600', note: 'Pain Reg • Ketchup • Sauce Ranch • Salade Mac • Tomate • Filet de Poisson', steps: ['pain_reg', 'ketchup', 'sauce_ranch', 'salade_mac', 'tomate_1', 'filet_poisson'] },
+            { id: 'fish_new_york', name: 'FISH NEW YORK', category: '6', categoryLabel: '6 • POISSON', catColor: 'bg-sky-600', note: 'Pain Royal • Moutarde • Sauce McChicken • 2 Cornichons • Salade Mac • Tomate • Filet de Poisson • White Cheddar', steps: ['pain_royal', 'moutarde', 'sauce_mcchicken', 'cornichons_2', 'salade_mac', 'tomate_1', 'filet_poisson', 'emmental_1'] },
+            { id: 'double_fish_new_york', name: 'DOUBLE FISH NEW YORK', category: '6', categoryLabel: '6 • POISSON', catColor: 'bg-sky-600', note: 'Pain Royal • Moutarde • Sauce McChicken • 2 Cornichons • Salade Mac • Tomate • Filet de Poisson • White Cheddar • Filet de Poisson', steps: ['pain_royal', 'moutarde', 'sauce_mcchicken', 'cornichons_2', 'salade_mac', 'tomate_1', 'filet_poisson', 'emmental_1', 'filet_poisson'] }
+        ];
+
+        const GRILL_SLIPS = [
+            { id: 'no_pickles', label: '🚫 SANS Cornichons', type: 'remove', targets: ['cornichons_1', 'cornichons_2'] },
+            { id: 'no_onions', label: '🚫 SANS Oignons', type: 'remove', targets: ['oignons_frais', 'oignons_frits'] },
+            { id: 'no_tomato', label: '🚫 SANS Tomate', type: 'remove', targets: ['tomate_1', 'tomate_2'] },
+            { id: 'extra_bacon', label: '➕ EXTRA Bacon', type: 'extra', addId: 'bacon' },
+            { id: 'extra_cheddar', label: '➕ EXTRA Cheddar', type: 'extra', addId: 'cheddar_1' }
+        ];
+
+        /**
+         * =====================================================================
+         * 5. ÉTAT GLOBAL DU JEU ARCADE
+         * =====================================================================
+         */
+        let game = {
+            mode: 'free', // 'free' | 'rush' | 'book'
+            catFilter: 'ALL',
+            bookCatFilter: 'ALL',
+            bookOnlyUnmastered: false,
+            guideActive: false,
+            currentRecipe: null,
+            activeSteps: [],
+            activeGrillSlip: null,
+            duoQueue: [],
+            duoIndex: 0,
+            currentCustomer: CUSTOMERS[0],
+            stepIndex: 0,
+            awaitingManualFinish: false,
+            itemMistakes: 0,
+            itemUsedHelp: false,
+            recipeStars: {},
+            stack: [],
+            bigMacDual: {
+                talon: [],
+                centre: [],
+                hasCornichons: false,
+                hasCheddar: false
+            },
+            served: 0,
+            combo: 1,
+            patience: 100,
+            patienceTimer: null,
+            rushSeconds: 180,
+            rushClockTimer: null,
+            rushClientsCount: 0,
+            locking: false,
+            currentAccount: null,
+            authMode: 'login'
+        };
+
+        window.gameStateRef = game;
+
+        window.onload = function () {
+            loadLocalProgress();
+            updateAccountHUD();
+            renderAllCounterStations();
+            renderRecipeBook();
+            spawnNextCustomerOrder();
+            if (window.cloudAccountService) {
+                window.cloudAccountService.init();
+            }
+        };
+
+        function loadLocalProgress() {
+            try {
+                const rawStars = localStorage.getItem('mcdo_rush_recipe_stars_v2');
+                if (rawStars) game.recipeStars = JSON.parse(rawStars) || {};
+                const rawServed = localStorage.getItem('mcdo_rush_served_v2');
+                if (rawServed) game.served = parseInt(rawServed, 10) || 0;
+                const rawSession = localStorage.getItem('mcdo_rush_active_account_v2');
+                if (rawSession) {
+                    const savedAcc = JSON.parse(rawSession);
+                    if (savedAcc && savedAcc.usernameKey) {
+                        game.currentAccount = savedAcc;
+                        game.served = savedAcc.served || 0;
+                        game.recipeStars = savedAcc.recipeStars || {};
+                    }
+                }
+            } catch (e) {}
+            const hudServed = document.getElementById('hud-served');
+            if (hudServed) hudServed.textContent = game.served;
+        }
+
+        function persistProgress() {
+            try {
+                localStorage.setItem('mcdo_rush_recipe_stars_v2', JSON.stringify(game.recipeStars));
+                localStorage.setItem('mcdo_rush_served_v2', String(game.served));
+                if (game.currentAccount) {
+                    game.currentAccount.served = game.served;
+                    game.currentAccount.recipeStars = { ...game.recipeStars };
+                    localStorage.setItem('mcdo_rush_active_account_v2', JSON.stringify(game.currentAccount));
+                    if (window.cloudAccountService) {
+                        window.cloudAccountService.saveUserProgress(game.currentAccount);
+                    }
+                }
+            } catch (e) {}
+        }
+
+        function updateAccountHUD() {
+            const nameEl = document.getElementById('hud-username');
+            const dotEl = document.getElementById('hud-sync-dot');
+            const loggedInView = document.getElementById('auth-logged-in-view');
+            const formView = document.getElementById('auth-form-view');
+
+            if (game.currentAccount) {
+                if (nameEl) nameEl.textContent = game.currentAccount.username;
+                if (dotEl) {
+                    dotEl.className = 'w-2 h-2 rounded-full bg-emerald-400';
+                    dotEl.title = 'Profil synchronisé';
+                }
+                if (loggedInView && formView) {
+                    loggedInView.classList.remove('hidden');
+                    loggedInView.classList.add('flex');
+                    formView.classList.add('hidden');
+                }
+                const activeName = document.getElementById('auth-active-name');
+                const statServed = document.getElementById('auth-stat-served');
+                const statMastered = document.getElementById('auth-stat-mastered');
+                if (activeName) activeName.textContent = game.currentAccount.username;
+                if (statServed) statServed.textContent = `${game.served} ⭐`;
+                const mastered = RECIPES.filter(r => (game.recipeStars[r.id] || 0) >= 5).length;
+                if (statMastered) statMastered.textContent = `${mastered}/${RECIPES.length}`;
+            } else {
+                if (nameEl) nameEl.textContent = 'Invité';
+                if (dotEl) {
+                    dotEl.className = 'w-2 h-2 rounded-full bg-amber-400';
+                    dotEl.title = 'Mode local';
+                }
+                if (loggedInView && formView) {
+                    loggedInView.classList.add('hidden');
+                    loggedInView.classList.remove('flex');
+                    formView.classList.remove('hidden');
+                }
+            }
+        }
+
+        function openAuthModal() {
+            updateAccountHUD();
+            const fb = document.getElementById('auth-feedback-box');
+            if (fb) fb.classList.add('hidden');
+            const modal = document.getElementById('auth-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function switchAuthTab(tab) {
+            game.authMode = tab;
+            const loginBtn = document.getElementById('auth-tab-login');
+            const regBtn = document.getElementById('auth-tab-register');
+            const submitBtn = document.getElementById('auth-submit-btn');
+            const fb = document.getElementById('auth-feedback-box');
+            if (fb) fb.classList.add('hidden');
+
+            if (tab === 'login') {
+                loginBtn.className = 'btn-glossy py-1.5 rounded-xl text-xs font-black bg-amber-400 text-amber-950';
+                regBtn.className = 'py-1.5 rounded-xl text-xs font-black text-pink-100';
+                submitBtn.textContent = '🚀 Se connecter & charger';
+            } else {
+                regBtn.className = 'btn-glossy py-1.5 rounded-xl text-xs font-black bg-amber-400 text-amber-950';
+                loginBtn.className = 'py-1.5 rounded-xl text-xs font-black text-pink-100';
+                submitBtn.textContent = '✨ Créer mon profil';
+            }
+        }
+
+        async function handleAuthSubmit(event) {
+            event.preventDefault();
+            const username = document.getElementById('auth-input-username').value.trim();
+            const password = document.getElementById('auth-input-password').value;
+            const fb = document.getElementById('auth-feedback-box');
+            const submitBtn = document.getElementById('auth-submit-btn');
+
+            if (!window.cloudAccountService) return;
+            submitBtn.disabled = true;
+            fb.classList.add('hidden');
+
+            try {
+                let accountData;
+                if (game.authMode === 'register') {
+                    accountData = await window.cloudAccountService.registerUser(username, password);
+                } else {
+                    accountData = await window.cloudAccountService.loginUser(username, password);
+                }
+                game.currentAccount = accountData;
+                game.served = accountData.served || 0;
+                game.recipeStars = accountData.recipeStars || {};
+                document.getElementById('hud-served').textContent = game.served;
+                localStorage.setItem('mcdo_rush_active_account_v2', JSON.stringify(accountData));
+                updateAccountHUD();
+                renderRecipeBook();
+                if (game.currentRecipe) {
+                    const st = Math.min(5, game.recipeStars[game.currentRecipe.id] || 0);
+                    document.getElementById('order-subtitle').innerHTML = game.currentRecipe.isDualBigMac
+                        ? `${renderStarIcons(st, 'text-xs')} • Montage parallèle Talon & Centre !`
+                        : `${renderStarIcons(st, 'text-xs')}`;
+                }
+            } catch (err) {
+                fb.textContent = err.message || 'Erreur lors de la connexion.';
+                fb.className = 'rounded-xl px-3 py-2 text-xs font-extrabold text-center bg-rose-500/30 border border-rose-400 text-rose-200';
+                fb.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+            }
+        }
+
+        async function forceSaveCurrentAccount() {
+            persistProgress();
+            const statusMsg = document.getElementById('auth-sync-status-msg');
+            if (statusMsg) {
+                statusMsg.textContent = '💾 Sauvegarde enregistrée !';
+                setTimeout(() => {
+                    statusMsg.textContent = '✅ Progression synchronisée automatiquement';
+                }, 1800);
+            }
+        }
+
+        function logoutAccount() {
+            game.currentAccount = null;
+            localStorage.removeItem('mcdo_rush_active_account_v2');
+            updateAccountHUD();
+        }
+
+        function renderStarIcons(starsCount, sizeClass = 'text-sm') {
+            return [1, 2, 3, 4, 5].map(n =>
+                n <= starsCount
+                    ? `<span class="${sizeClass} text-amber-300 drop-shadow">⭐</span>`
+                    : `<span class="${sizeClass} text-white/25">☆</span>`
+            ).join('');
+        }
+
+        function switchMode(newMode) {
+            stopTimers();
+            game.mode = newMode;
+
+            document.querySelectorAll('.mode-tab').forEach(btn => {
+                btn.classList.remove('btn-glossy', 'bg-amber-400', 'text-amber-950');
+                btn.classList.add('text-pink-100');
+            });
+            const activeTab = document.getElementById(`tab-mode-${newMode}`);
+            if (activeTab) {
+                activeTab.classList.add('btn-glossy', 'bg-amber-400', 'text-amber-950');
+                activeTab.classList.remove('text-pink-100');
+            }
+
+            const counterView = document.getElementById('arcade-counter-view');
+            const bookView = document.getElementById('recipe-book-view');
+            const freeBar = document.getElementById('free-category-bar');
+            const rushBar = document.getElementById('rush-control-bar');
+
+            if (newMode === 'book') {
+                counterView.classList.add('hidden');
+                bookView.classList.remove('hidden');
+                bookView.classList.add('flex');
+                renderRecipeBook();
+                return;
+            }
+
+            bookView.classList.add('hidden');
+            bookView.classList.remove('flex');
+            counterView.classList.remove('hidden');
+
+            if (newMode === 'rush') {
+                freeBar.classList.add('hidden');
+                rushBar.classList.remove('hidden');
+                rushBar.classList.add('flex');
+                startRushSession();
+            } else {
+                rushBar.classList.add('hidden');
+                rushBar.classList.remove('flex');
+                freeBar.classList.remove('hidden');
+                spawnNextCustomerOrder();
+            }
+        }
+
+        function stopTimers() {
+            if (game.patienceTimer) { clearInterval(game.patienceTimer); game.patienceTimer = null; }
+            if (game.rushClockTimer) { clearInterval(game.rushClockTimer); game.rushClockTimer = null; }
+        }
+
+        function startRushSession() {
+            stopTimers();
+            game.rushSeconds = 180;
+            game.rushClientsCount = 0;
+            game.combo = 1;
+            updateRushClockUI();
+            spawnNextCustomerOrder();
+
+            game.rushClockTimer = setInterval(() => {
+                game.rushSeconds--;
+                updateRushClockUI();
+                if (game.rushSeconds <= 0) {
+                    stopTimers();
+                    openRushEndModal();
+                }
+            }, 1000);
+        }
+
+        function updateRushClockUI() {
+            const m = String(Math.floor(game.rushSeconds / 60)).padStart(2, '0');
+            const s = String(game.rushSeconds % 60).padStart(2, '0');
+            const el = document.getElementById('rush-clock');
+            el.textContent = `${m}:${s}`;
+            el.classList.toggle('text-rose-400', game.rushSeconds <= 15);
+            el.classList.toggle('text-amber-300', game.rushSeconds > 15);
+            document.getElementById('rush-combo-badge').textContent = `x${game.combo}`;
+        }
+
+        function openRushEndModal() {
+            document.getElementById('rush-summary-clients').textContent = game.rushClientsCount;
+            const modal = document.getElementById('rush-end-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeRushEndModal() {
+            const modal = document.getElementById('rush-end-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        /**
+         * =====================================================================
+         * 7. GESTION DES CLIENTS & COMMANDES
+         * =====================================================================
+         */
+        function setCategoryFilter(cat) {
+            game.catFilter = cat;
+            document.querySelectorAll('.cat-pill').forEach(btn => {
+                if (btn.dataset.cat === cat) {
+                    btn.classList.add('btn-glossy', 'ring-2', 'ring-white');
+                } else {
+                    btn.classList.remove('btn-glossy', 'ring-2', 'ring-white');
+                }
+            });
+            spawnNextCustomerOrder();
+        }
+
+        function spawnNextCustomerOrder(specificRecipeId = null) {
+            game.locking = false;
+            game.duoQueue = [];
+            game.duoIndex = 0;
+
+            let pool = RECIPES;
+            if (specificRecipeId) {
+                const found = RECIPES.find(r => r.id === specificRecipeId);
+                if (found) {
+                    game.duoQueue = [{ recipe: found, grillSlip: null }];
+                }
+            } else if (game.mode === 'rush') {
+                const isDuo = Math.random() < 0.45;
+                if (isDuo) {
+                    const r1 = RECIPES[Math.floor(Math.random() * RECIPES.length)];
+                    const candidates2 = RECIPES.filter(r => r.id !== r1.id);
+                    const r2 = candidates2[Math.floor(Math.random() * candidates2.length)];
+                    game.duoQueue = [
+                        { recipe: r1, grillSlip: null },
+                        { recipe: r2, grillSlip: null }
+                    ];
+                } else {
+                    const r = RECIPES[Math.floor(Math.random() * RECIPES.length)];
+                    const slip = pickCompatibleGrillSlip(r);
+                    game.duoQueue = [{ recipe: r, grillSlip: slip }];
+                }
+            } else {
+                if (game.catFilter !== 'ALL') {
+                    pool = RECIPES.filter(r => r.category === game.catFilter);
+                }
+                const candidates = pool.length > 1 && game.currentRecipe
+                    ? pool.filter(r => r.id !== game.currentRecipe.id)
+                    : pool;
+                const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+                game.duoQueue = [{ recipe: chosen, grillSlip: null }];
+            }
+
+            game.currentCustomer = CUSTOMERS[Math.floor(Math.random() * CUSTOMERS.length)];
+            const stage = document.getElementById('customer-stage');
+            stage.classList.remove('customer-enter', 'customer-happy');
+            void stage.offsetWidth;
+            stage.classList.add('customer-enter');
+            setCustomerMood('neutral');
+
+            if (game.patienceTimer) clearInterval(game.patienceTimer);
+            game.patience = 100;
+            updatePatienceUI();
+
+            if (game.mode === 'rush') {
+                const decay = game.duoQueue.length > 1 ? 0.75 : 1.1;
+                game.patienceTimer = setInterval(() => {
+                    game.patience = Math.max(0, game.patience - decay);
+                    updatePatienceUI();
+                    if (game.patience <= 0) {
+                        clearInterval(game.patienceTimer);
+                        game.combo = 1;
+                        updateRushClockUI();
+                        playArcadeSound('error');
+                        setTimeout(() => spawnNextCustomerOrder(), 850);
+                    }
+                }, 250);
+            }
+
+            loadCurrentDuoItem(0);
+        }
+
+        function pickCompatibleGrillSlip(recipe) {
+            if (recipe.isDualBigMac) return null;
+            const compatible = GRILL_SLIPS.filter(slip => {
+                if (slip.type === 'remove') {
+                    return recipe.steps.some(s => slip.targets.includes(s));
+                }
+                return true;
+            });
+            if (compatible.length === 0 || Math.random() < 0.25) return null;
+            return compatible[Math.floor(Math.random() * compatible.length)];
+        }
+
+        function loadCurrentDuoItem(index) {
+            game.locking = false;
+            game.duoIndex = index;
+            const entry = game.duoQueue[index];
+            game.currentRecipe = entry.recipe;
+            game.activeGrillSlip = entry.grillSlip;
+            game.stepIndex = 0;
+            game.awaitingManualFinish = false;
+            game.itemMistakes = 0;
+            game.itemUsedHelp = game.guideActive;
+            game.stack = [];
+            game.bigMacDual = {
+                talon: [],
+                centre: [],
+                hasCornichons: false,
+                hasCheddar: false
+            };
+
+            let steps = [...game.currentRecipe.steps];
+            if (game.activeGrillSlip) {
+                if (game.activeGrillSlip.type === 'remove') {
+                    steps = steps.filter(s => !game.activeGrillSlip.targets.includes(s));
+                } else if (game.activeGrillSlip.type === 'extra') {
+                    steps.push(game.activeGrillSlip.addId);
+                }
+            }
+            game.activeSteps = steps;
+
+            const r = game.currentRecipe;
+            const catBadge = document.getElementById('order-cat-badge');
+            catBadge.className = `px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider text-white ${r.catColor}`;
+            catBadge.textContent = r.categoryLabel;
+
+            const duoBadge = document.getElementById('order-duo-badge');
+            const duoTracker = document.getElementById('duo-items-tracker');
+            if (game.duoQueue.length > 1) {
+                duoBadge.classList.remove('hidden');
+                duoBadge.textContent = `DUO ${index + 1}/${game.duoQueue.length}`;
+                duoTracker.classList.remove('hidden');
+                duoTracker.innerHTML = game.duoQueue.map((item, i) => {
+                    if (i < index) {
+                        return `<span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-500">✅ ${item.recipe.name}</span>`;
+                    } else if (i === index) {
+                        return `<span class="px-2 py-0.5 rounded-lg bg-amber-300 text-amber-950 border border-amber-600">👉 ${item.recipe.name}</span>`;
+                    }
+                    return `<span class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-600 border border-slate-300">⏳ ${item.recipe.name}</span>`;
+                }).join('');
+            } else {
+                duoBadge.classList.add('hidden');
+                duoTracker.classList.add('hidden');
+            }
+
+            const slipBadge = document.getElementById('grill-slip-badge');
+            if (game.activeGrillSlip) {
+                slipBadge.classList.remove('hidden');
+                slipBadge.textContent = game.activeGrillSlip.label;
+            } else {
+                slipBadge.classList.add('hidden');
+            }
+
+            document.getElementById('order-title').textContent = r.name;
+            const currentStars = Math.min(5, game.recipeStars[r.id] || 0);
+            if (r.isDualBigMac) {
+                document.getElementById('order-subtitle').innerHTML = `${renderStarIcons(currentStars, 'text-xs')} • Montage parallèle Talon & Centre !`;
+            } else {
+                document.getElementById('order-subtitle').innerHTML = `${renderStarIcons(currentStars, 'text-xs')}`;
+            }
+
+            updateProgressPills();
+            renderAssemblyPlateau();
+            renderAllCounterStations();
+        }
+
+        function setCustomerMood(mood) {
+            document.getElementById('customer-avatar').innerHTML = game.currentCustomer.svg(mood);
+        }
+
+        function updatePatienceUI() {
+            const bar = document.getElementById('patience-bar');
+            const emoji = document.getElementById('patience-emoji');
+            bar.style.width = `${game.patience}%`;
+
+            if (game.patience > 55) {
+                bar.className = 'h-full bg-emerald-500 transition-all duration-200';
+                emoji.textContent = '😊';
+            } else if (game.patience > 25) {
+                bar.className = 'h-full bg-amber-400 transition-all duration-200';
+                emoji.textContent = '😅';
+            } else {
+                bar.className = 'h-full bg-rose-500 transition-all duration-200';
+                emoji.textContent = '🥵';
+            }
+        }
+
+        function updateProgressPills() {
+            const r = game.currentRecipe;
+            const container = document.getElementById('order-progress-pills');
+            if (r.isDualBigMac) {
+                const totalSteps = 6;
+                container.innerHTML = Array.from({ length: totalSteps }).map((_, idx) => {
+                    if (idx < game.stepIndex) {
+                        return `<span class="w-3 h-3 rounded-full bg-emerald-500 border border-emerald-800"></span>`;
+                    } else if (idx === game.stepIndex) {
+                        return `<span class="w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-amber-700 animate-bounce"></span>`;
+                    }
+                    return `<span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>`;
+                }).join('');
+                return;
+            }
+
+            container.innerHTML = game.activeSteps.map((_, idx) => {
+                if (idx < game.stepIndex) {
+                    return `<span class="w-3 h-3 rounded-full bg-emerald-500 border border-emerald-800"></span>`;
+                } else if (idx === game.stepIndex) {
+                    return `<span class="w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-amber-700 animate-bounce"></span>`;
+                }
+                return `<span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>`;
+            }).join('');
+        }
+
+        function toggleGuideMode() {
+            game.guideActive = !game.guideActive;
+            if (game.guideActive) game.itemUsedHelp = true;
+            const btn = document.getElementById('btn-guide-toggle');
+            const lbl = document.getElementById('guide-label');
+            if (game.guideActive) {
+                btn.classList.remove('bg-white', 'text-purple-950');
+                btn.classList.add('bg-lime-400', 'text-emerald-950', 'border-emerald-900');
+                lbl.textContent = 'Guide : ON';
+            } else {
+                btn.classList.add('bg-white', 'text-purple-950');
+                btn.classList.remove('bg-lime-400', 'text-emerald-950', 'border-emerald-900');
+                lbl.textContent = 'Guide : OFF';
+            }
+            renderAssemblyPlateau();
+            renderAllCounterStations();
+        }
+
+        function skipCurrentOrder() {
+            if (game.locking) return;
+            game.combo = 1;
+            if (game.mode === 'rush') updateRushClockUI();
+            spawnNextCustomerOrder();
+        }
+
+        /**
+         * =====================================================================
+         * 8. INTERACTION SUR LE COMPTOIR
+         * =====================================================================
+         */
+        function onCounterIngredientClick(ingId) {
+            if (game.locking || !game.currentRecipe) return;
+            if (game.awaitingManualFinish) return;
+
+            if (game.currentRecipe.isDualBigMac) {
+                handleBigMacParallelClick(ingId);
+                return;
+            }
+
+            const expectedId = game.activeSteps[game.stepIndex];
+            const clicked = INGREDIENTS[ingId];
+
+            if (ingId === expectedId) {
+                playArcadeSound(clicked.type === 'sauce' ? 'sauce' : 'place');
+                game.stack.push(clicked);
+                game.stepIndex++;
+                updateProgressPills();
+
+                if (game.stepIndex >= game.activeSteps.length) {
+                    finishAndServeOrder();
+                } else {
+                    renderAssemblyPlateau();
+                    renderAllCounterStations();
+                }
+            } else {
+                triggerIngredientError();
+            }
+        }
+
+        function handleBigMacParallelClick(ingId) {
+            const clicked = INGREDIENTS[ingId];
+            const bm = game.bigMacDual;
+
+            if (game.stepIndex === 0) {
+                if (ingId === 'pain_mac') {
+                    playArcadeSound('place');
+                    bm.talon.push({ ...INGREDIENTS.pain_reg, name: 'Talon Mac' });
+                    bm.centre.push({ ...INGREDIENTS.pain_reg, name: 'Centre Mac' });
+                    game.stack.push(clicked);
+                    game.stepIndex = 1;
+                    syncBigMacUI();
+                } else {
+                    triggerIngredientError();
+                }
+                return;
+            }
+
+            if (game.stepIndex === 1) {
+                if (ingId === 'sauce_mac') {
+                    playArcadeSound('sauce');
+                    bm.talon.push(clicked);
+                    bm.centre.push(clicked);
+                    game.stack.push(clicked);
+                    game.stepIndex = 2;
+                    syncBigMacUI();
+                } else {
+                    triggerIngredientError();
+                }
+                return;
+            }
+
+            if (game.stepIndex === 2) {
+                if (ingId === 'salade_mac') {
+                    playArcadeSound('place');
+                    bm.talon.push(clicked);
+                    bm.centre.push(clicked);
+                    game.stack.push(clicked);
+                    game.stepIndex = 3;
+                    syncBigMacUI();
+                } else {
+                    triggerIngredientError();
+                }
+                return;
+            }
+
+            if (game.stepIndex === 3 || game.stepIndex === 4) {
+                if (ingId === 'cornichons_2' && !bm.hasCornichons) {
+                    playArcadeSound('place');
+                    bm.hasCornichons = true;
+                    bm.centre.push(clicked);
+                    game.stack.push({ ...clicked, side: 'centre' });
+                    game.stepIndex++;
+                    syncBigMacUI();
+                    return;
+                }
+                if (ingId === 'cheddar_1' && !bm.hasCheddar) {
+                    playArcadeSound('place');
+                    bm.hasCheddar = true;
+                    bm.talon.push(clicked);
+                    game.stack.push({ ...clicked, side: 'talon' });
+                    game.stepIndex++;
+                    syncBigMacUI();
+                    return;
+                }
+                triggerIngredientError();
+                return;
+            }
+
+            if (game.stepIndex === 5) {
+                if (ingId === 'viande_10_1') {
+                    playArcadeSound('place');
+                    bm.talon.push(clicked);
+                    bm.centre.push(clicked);
+                    game.stack.push(clicked);
+                    game.stepIndex = 6;
+                    game.awaitingManualFinish = true;
+                    syncBigMacUI();
+                } else {
+                    triggerIngredientError();
+                }
+            }
+        }
+
+        function triggerManualFinishAction() {
+            if (!game.awaitingManualFinish || game.locking) return;
+            game.awaitingManualFinish = false;
+            playArcadeSound('fold');
+            finishAndServeOrder();
+        }
+
+        function syncBigMacUI() {
+            renderAssemblyPlateau();
+            renderAllCounterStations();
+            updateProgressPills();
+        }
+
+        function triggerIngredientError() {
+            playArcadeSound('error');
+            game.itemMistakes++;
+            game.combo = 1;
+            if (game.mode === 'rush') {
+                game.patience = Math.max(0, game.patience - 12);
+                updatePatienceUI();
+                updateRushClockUI();
+            }
+            setCustomerMood('sad');
+
+            const worktop = document.getElementById('counter-worktop');
+            worktop.classList.remove('shake-counter');
+            void worktop.offsetWidth;
+            worktop.classList.add('shake-counter');
+        }
+
+        function finishAndServeOrder() {
+            game.locking = true;
+
+            const prevStars = Math.min(5, game.recipeStars[game.currentRecipe.id] || 0);
+            let newStars = prevStars;
+
+            if (game.itemMistakes === 0 && !game.itemUsedHelp) {
+                newStars = Math.min(5, prevStars + 1);
+            } else if (game.itemMistakes <= 1) {
+                const cap = 3;
+                newStars = prevStars < cap ? Math.min(cap, prevStars + 1) : prevStars;
+            } else {
+                const cap = 2;
+                newStars = prevStars < cap ? Math.min(cap, prevStars + 1) : prevStars;
+            }
+
+            if (newStars > prevStars) {
+                game.recipeStars[game.currentRecipe.id] = newStars;
+            }
+
+            const isDuoPart1 = game.duoQueue.length > 1 && game.duoIndex < game.duoQueue.length - 1;
+            persistProgress();
+
+            const plateau = document.getElementById('burger-assembly-stack');
+            const starPop = document.createElement('div');
+            starPop.className = 'coin-floater absolute top-1/3 left-1/2 -translate-x-1/2 z-30 font-cartoon text-center text-amber-300 drop-shadow-[0_3px_4px_rgba(0,0,0,0.85)]';
+            starPop.innerHTML = `<div class="text-xl">${'⭐'.repeat(newStars)}</div><div class="text-xs text-white font-black">${newStars}/5 ⭐</div>`;
+            plateau.parentElement.appendChild(starPop);
+            setTimeout(() => starPop.remove(), 900);
+
+            renderAssemblyPlateau(true);
+
+            if (isDuoPart1) {
+                playArcadeSound('toast');
+                setTimeout(() => {
+                    loadCurrentDuoItem(game.duoIndex + 1);
+                }, 750);
+                return;
+            }
+
+            if (game.patienceTimer) clearInterval(game.patienceTimer);
+            playArcadeSound('serve');
+            setCustomerMood('happy');
+
+            const stage = document.getElementById('customer-stage');
+            stage.classList.remove('customer-happy');
+            void stage.offsetWidth;
+            stage.classList.add('customer-happy');
+
+            game.served++;
+            if (game.mode === 'rush') {
+                game.rushClientsCount++;
+                game.combo = Math.min(game.combo + 1, 5);
+                updateRushClockUI();
+            }
+
+            document.getElementById('hud-served').textContent = game.served;
+            persistProgress();
+
+            setTimeout(() => {
+                spawnNextCustomerOrder();
+            }, game.mode === 'rush' ? 750 : 1200);
+        }
+
+        function getBigMacExpectedIds() {
+            const bm = game.bigMacDual;
+            if (game.stepIndex === 0) return ['pain_mac'];
+            if (game.stepIndex === 1) return ['sauce_mac'];
+            if (game.stepIndex === 2) return ['salade_mac'];
+            if (game.stepIndex === 3 || game.stepIndex === 4) {
+                const ids = [];
+                if (!bm.hasCornichons) ids.push('cornichons_2');
+                if (!bm.hasCheddar) ids.push('cheddar_1');
+                return ids;
+            }
+            if (game.stepIndex === 5) return ['viande_10_1'];
+            return [];
+        }
+
+        function triggerVisualHint() {
+            if (game.locking || !game.currentRecipe) return;
+            game.itemUsedHelp = true;
+            if (!game.guideActive) {
+                toggleGuideMode();
+            }
+        }
+
+        /**
+         * =====================================================================
+         * 9. RENDU DU PLATEAU CENTRAL & DES 4 POSTES DU COMPTOIR
+         * =====================================================================
+         */
+        function renderAssemblyPlateau(isComplete = false) {
+            const stackEl = document.getElementById('burger-assembly-stack');
+
+            if (game.currentRecipe && game.currentRecipe.isDualBigMac) {
+                renderBigMacDualPlateau(stackEl, isComplete);
+                return;
+            }
+
+            if (game.stack.length === 0 && (!game.guideActive || !game.currentRecipe)) {
+                stackEl.innerHTML = `
+                    <div class="my-auto text-center text-slate-600 py-6">
+                        <div class="text-3xl mb-1 opacity-70">🍔</div>
+                        <p class="text-xs font-extrabold">Plateau prêt !</p>
+                    </div>
+                `;
+                return;
+            }
+
+            stackEl.innerHTML = '';
+
+            if (isComplete && game.currentRecipe && game.currentRecipe.isWrap) {
+                stackEl.innerHTML = `
+                    <div class="layer-boing my-auto bg-gradient-to-r from-emerald-500 to-amber-400 border-4 border-emerald-900 text-white rounded-3xl px-4 py-3 w-full max-w-[240px] text-center shadow-xl">
+                        <div class="text-3xl mb-1">🌯✨</div>
+                        <div class="font-cartoon text-sm uppercase tracking-wider">Wrap Prêt !</div>
+                    </div>
+                `;
+                return;
+            }
+
+            game.stack.forEach((ing, idx) => {
+                const layer = document.createElement('div');
+                layer.className = `layer-boing burger-stack-layer ${ing.color} rounded-2xl border-2 px-3 py-1 w-full max-w-[240px] flex items-center justify-between shrink-0`;
+                layer.innerHTML = `
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="w-4 h-4 rounded-full bg-black/20 text-[10px] font-black flex items-center justify-center shrink-0">${idx + 1}</span>
+                        <span class="text-xs font-black truncate">${ing.name}</span>
+                    </div>
+                    <div class="w-11 shrink-0">${getIngredientSVG(ing)}</div>
+                `;
+                stackEl.appendChild(layer);
+            });
+
+            if (!isComplete && game.guideActive && game.currentRecipe && game.stepIndex < game.activeSteps.length) {
+                const nextIng = INGREDIENTS[game.activeSteps[game.stepIndex]];
+                const ghost = document.createElement('div');
+                ghost.className = 'border-2 border-dashed border-purple-700 bg-purple-500/15 text-purple-950 rounded-2xl px-3 py-1 w-full max-w-[240px] flex items-center justify-between shrink-0 animate-pulse';
+                ghost.innerHTML = `
+                    <span class="text-xs font-black truncate">👉 ${nextIng.name}</span>
+                    <div class="w-11 shrink-0 opacity-80">${getIngredientSVG(nextIng)}</div>
+                `;
+                stackEl.appendChild(ghost);
+            }
+
+            const first = game.stack[0];
+            if (isComplete && first && !first.id.includes('tortilla')) {
+                const crown = document.createElement('div');
+                crown.className = 'layer-boing bg-amber-400 border-2 border-amber-700 text-amber-950 py-1.5 rounded-t-3xl rounded-b-lg w-full max-w-[240px] text-center shadow-lg shrink-0';
+                crown.innerHTML = `<span class="text-xs font-black uppercase tracking-wider">👑 Chapeau Fermé !</span>`;
+                stackEl.appendChild(crown);
+            }
+        }
+
+        function renderBigMacDualPlateau(stackEl, isComplete) {
+            const bm = game.bigMacDual;
+
+            if (bm.talon.length === 0 && bm.centre.length === 0 && !game.guideActive) {
+                stackEl.innerHTML = `
+                    <div class="my-auto text-center text-slate-600 py-4">
+                        <div class="text-3xl mb-1 opacity-75">🍔🍔</div>
+                        <p class="text-xs font-black text-purple-950">Montage Parallèle Big Mac</p>
+                        <p class="text-[11px] font-bold text-slate-600">Talon à gauche • Centre à droite</p>
+                    </div>
+                `;
+                return;
+            }
+
+            if (isComplete) {
+                stackEl.innerHTML = `
+                    <div class="w-full max-w-[260px] flex flex-col items-center gap-1 my-auto">
+                        <div class="layer-boing bg-amber-400 border-2 border-amber-700 text-amber-950 py-1.5 rounded-t-3xl rounded-b-lg w-full text-center shadow-lg">
+                            <span class="text-xs font-black uppercase tracking-wider">👑 Couronne Pain Mac</span>
+                        </div>
+                        <div class="layer-boing bg-emerald-100 border-2 border-emerald-600 text-emerald-950 py-1 px-2.5 rounded-xl w-full flex items-center justify-between text-[11px] font-black shadow">
+                            <span>Étage Centre (10:1 + 2 Cornichons + Salade + Sauce)</span>
+                            <span>➡️🍔</span>
+                        </div>
+                        <div class="layer-boing bg-amber-100 border-2 border-amber-600 text-amber-950 py-1 px-2.5 rounded-xl w-full flex items-center justify-between text-[11px] font-black shadow">
+                            <span>Étage Talon (10:1 + Cheddar + Salade + Sauce)</span>
+                            <span>⬅️🍔</span>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const renderMiniColumn = (title, badgeColor, items, ghostLabel) => {
+                const layers = items.map(ing => `
+                    <div class="layer-boing ${ing.color} rounded-xl border px-1.5 py-0.5 w-full flex items-center justify-between gap-1 shadow-sm">
+                        <span class="text-[10px] font-black truncate">${ing.name.replace(' (2x)', '')}</span>
+                        <div class="w-7 shrink-0">${getIngredientSVG(ing)}</div>
+                    </div>
+                `).join('');
+
+                const ghostHtml = (game.guideActive && ghostLabel)
+                    ? `<div class="border border-dashed border-purple-700 bg-purple-500/15 text-purple-950 rounded-xl px-1.5 py-0.5 text-[10px] font-black text-center animate-pulse">👉 ${ghostLabel}</div>`
+                    : '';
+
+                return `
+                    <div class="flex-1 bg-white/70 border-2 border-slate-300 rounded-2xl p-1.5 flex flex-col justify-between min-h-[150px]">
+                        <div class="text-center mb-1">
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider text-white ${badgeColor}">${title}</span>
+                        </div>
+                        <div class="flex-1 flex flex-col-reverse justify-start gap-1">
+                            ${layers}
+                            ${ghostHtml}
+                        </div>
+                    </div>
+                `;
+            };
+
+            let ghostTalon = null;
+            let ghostCentre = null;
+            if (game.stepIndex === 0) { ghostTalon = 'Pain Mac'; ghostCentre = 'Pain Mac'; }
+            else if (game.stepIndex === 1) { ghostTalon = 'Sauce Mac'; ghostCentre = 'Sauce Mac'; }
+            else if (game.stepIndex === 2) { ghostTalon = 'Salade Mac'; ghostCentre = 'Salade Mac'; }
+            else if (game.stepIndex === 3 || game.stepIndex === 4) {
+                if (!bm.hasCheddar) ghostTalon = '1 Cheddar';
+                if (!bm.hasCornichons) ghostCentre = '2 Cornichons';
+            } else if (game.stepIndex === 5) {
+                ghostTalon = 'Steak 10:1';
+                ghostCentre = 'Steak 10:1';
+            }
+
+            const assembleBtnHtml = game.awaitingManualFinish ? `
+                <button onclick="triggerManualFinishAction()" class="layer-boing btn-glossy w-full py-2 px-3 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 border-2 border-amber-950 text-amber-950 font-black text-xs uppercase tracking-wide shadow-xl animate-bounce">
+                    🍔 ASSEMBLER LE BIG MAC (Centre → Talon + Couronne)
+                </button>
+            ` : '';
+
+            stackEl.innerHTML = `
+                <div class="w-full flex flex-col gap-1.5">
+                    ${assembleBtnHtml}
+                    ${!game.awaitingManualFinish && bm.talon.length > 0 ? `
+                        <div class="bg-amber-200/90 border border-amber-500 rounded-xl px-2 py-0.5 text-center text-[10px] font-black text-amber-950">
+                            👑 Couronne Pain Mac prête à côté
+                        </div>
+                    ` : ''}
+                    <div class="grid grid-cols-2 gap-1.5 w-full">
+                        ${renderMiniColumn('TALON (Gauche)', 'bg-amber-700', bm.talon, ghostTalon)}
+                        ${renderMiniColumn('CENTRE (Droite)', 'bg-red-700', bm.centre, ghostCentre)}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAllCounterStations() {
+            let expectedIds = [];
+            if (!game.locking && game.currentRecipe && !game.awaitingManualFinish) {
+                expectedIds = game.currentRecipe.isDualBigMac
+                    ? getBigMacExpectedIds()
+                    : [game.activeSteps[game.stepIndex]];
+            }
+
+            const all = Object.values(INGREDIENTS);
+
+            // 1. Pains & Wraps
+            renderStationItems('station-breads', all.filter(i => i.type === 'bread'), expectedIds, 'bg-amber-900/70 hover:bg-amber-800 border-amber-300/60 text-white');
+
+            // 2. Protéines UHC (avec couleurs de panières dédiées)
+            renderStationItems('station-proteins', all.filter(i => i.type === 'protein'), expectedIds, 'bg-orange-950/80 hover:bg-orange-900 border-orange-400/60 text-white', true);
+
+            // 3. Flacons de Sauces
+            const saucesEl = document.getElementById('station-sauces');
+            saucesEl.innerHTML = '';
+            all.filter(i => i.type === 'sauce').forEach(ing => {
+                const isTarget = game.guideActive && expectedIds.includes(ing.id);
+                const btn = document.createElement('button');
+                btn.onclick = () => onCounterIngredientClick(ing.id);
+                btn.className = `sauce-bottle-btn rounded-2xl p-1.5 border-2 flex flex-col items-center justify-between text-center ${isTarget ? 'bg-lime-300 border-emerald-900 text-emerald-950 ring-4 ring-lime-300 animate-pulse' : 'bg-rose-900/80 hover:bg-rose-800 border-pink-200/60 text-white'}`;
+                btn.innerHTML = `
+                    ${getIngredientSVG(ing)}
+                    <span class="text-[10px] sm:text-[11px] font-black leading-tight mt-0.5 line-clamp-1">${ing.name.replace('Sauce ', '')}</span>
+                `;
+                saucesEl.appendChild(btn);
+            });
+
+            // 4. Table à Garniture & Fromages (Disposition fidèle au poste réel)
+            renderGarnitureTableStation(expectedIds);
+        }
+
+        function renderGarnitureTableStation(expectedIds) {
+            const container = document.getElementById('station-toppings-cheese');
+            if (!container) return;
+
+            const renderPan = (ingId, labelOverride = null, customClasses = 'bg-emerald-900/75 hover:bg-emerald-800 border-emerald-200/50 text-white') => {
+                const ing = INGREDIENTS[ingId];
+                const isTarget = game.guideActive && expectedIds.includes(ing.id);
+                const cls = isTarget
+                    ? 'bg-lime-300 border-emerald-900 text-emerald-950 ring-2 lg:ring-4 ring-lime-300 animate-pulse'
+                    : customClasses;
+                return `
+                    <button onclick="onCounterIngredientClick('${ing.id}')" class="gastro-pan rounded-lg lg:rounded-xl p-1 lg:p-1.5 border lg:border-2 flex flex-col items-center justify-between text-center w-full ${cls}">
+                        <div class="w-full">${getIngredientSVG(ing)}</div>
+                        <span class="text-[8px] sm:text-[10px] font-black leading-tight mt-0.5 line-clamp-1">${labelOverride || ing.name}</span>
+                    </button>
+                `;
+            };
+
+            const renderDualHoverPan = (title, idOne, idTwo) => {
+                const ingOne = INGREDIENTS[idOne];
+                const isTargetOne = game.guideActive && expectedIds.includes(idOne);
+                const isTargetTwo = game.guideActive && expectedIds.includes(idTwo);
+                const isTargetAny = isTargetOne || isTargetTwo;
+
+                return `
+                    <div tabindex="0" class="group relative gastro-pan rounded-lg lg:rounded-xl p-1 lg:p-1.5 border lg:border-2 flex flex-col items-center justify-between text-center w-full overflow-hidden ${isTargetAny ? 'bg-lime-300 border-emerald-900 text-emerald-950 ring-2 lg:ring-4 ring-lime-300' : 'bg-emerald-900/75 border-emerald-200/50 text-white'}">
+                        <div class="w-full">${getIngredientSVG(ingOne)}</div>
+                        <span class="text-[8px] sm:text-[10px] font-black leading-tight mt-0.5">${title}</span>
+
+                        <!-- Choix Un / Deux au survol ou au toucher -->
+                        <div class="absolute inset-0 bg-slate-950/90 opacity-0 group-hover:opacity-100 group-focus:opacity-100 focus-within:opacity-100 transition-opacity flex flex-col items-center justify-center gap-0.5 lg:gap-1 p-0.5 lg:p-1 z-10">
+                            <button onclick="onCounterIngredientClick('${idOne}')" class="w-full py-0.5 rounded text-[9px] lg:text-[10px] font-black uppercase ${isTargetOne ? 'bg-lime-400 text-emerald-950 ring-1 ring-white' : 'bg-emerald-500 hover:bg-emerald-400 text-emerald-950'}">
+                                Un
+                            </button>
+                            <button onclick="onCounterIngredientClick('${idTwo}')" class="w-full py-0.5 rounded text-[9px] lg:text-[10px] font-black uppercase ${isTargetTwo ? 'bg-lime-400 text-emerald-950 ring-1 ring-white' : 'bg-amber-400 hover:bg-amber-300 text-amber-950'}">
+                                Deux
+                            </button>
+                        </div>
+                    </div>
+                `;
+            };
+
+            container.innerHTML = `
+                <div class="grid grid-cols-12 gap-1 lg:gap-1.5 items-stretch">
+                    <!-- Côté gauche : Paquet de White Cheddar -->
+                    <div class="col-span-2 bg-yellow-100/15 border border-yellow-200/40 rounded-xl lg:rounded-2xl p-1 lg:p-1.5 flex flex-col justify-between gap-0.5 lg:gap-1">
+                        <div class="text-[7px] lg:text-[9px] font-black uppercase text-yellow-200 text-center tracking-tight truncate">White</div>
+                        ${renderPan('emmental_1', 'White Ched.', 'bg-yellow-100 hover:bg-white border-yellow-400 text-slate-900')}
+                    </div>
+
+                    <!-- Centre : Étagère du haut + Étagère du bas -->
+                    <div class="col-span-8 flex flex-col gap-1 lg:gap-1.5">
+                        <!-- Étagère du haut -->
+                        <div class="grid grid-cols-5 gap-0.5 lg:gap-1 bg-black/25 p-0.5 lg:p-1 rounded-xl lg:rounded-2xl border border-white/10">
+                            ${renderPan('oignons_frits', 'Oig. frits')}
+                            ${renderPan('oignons_frais', 'Oig. frais')}
+                            ${renderPan('gouda_1', 'Gouda', 'bg-amber-200 hover:bg-amber-100 border-amber-500 text-amber-950')}
+                            ${renderPan('bacon', 'Bacon')}
+                            ${renderPan('jalapenos', 'Jalapeños')}
+                        </div>
+                        <!-- Étagère du bas -->
+                        <div class="grid grid-cols-5 gap-0.5 lg:gap-1 bg-black/25 p-0.5 lg:p-1 rounded-xl lg:rounded-2xl border border-white/10">
+                            ${renderPan('salade_mac', 'Sal. Mac')}
+                            ${renderPan('salade_batavia', 'Batavia')}
+                            ${renderPan('salade_mac', 'Sal. Mac')}
+                            ${renderDualHoverPan('Cornichon', 'cornichons_1', 'cornichons_2')}
+                            ${renderDualHoverPan('Tomate', 'tomate_1', 'tomate_2')}
+                        </div>
+                    </div>
+
+                    <!-- Côté droit : Paquet de Cheddar -->
+                    <div class="col-span-2 bg-orange-500/15 border border-orange-300/40 rounded-xl lg:rounded-2xl p-1 lg:p-1.5 flex flex-col justify-between gap-0.5 lg:gap-1">
+                        <div class="text-[7px] lg:text-[9px] font-black uppercase text-orange-200 text-center tracking-tight truncate">Cheddar</div>
+                        ${renderPan('cheddar_demi', '1/2 Ched.', 'bg-orange-400 hover:bg-orange-300 border-orange-100 text-orange-950')}
+                        ${renderPan('cheddar_1', '1 Ched.', 'bg-orange-400 hover:bg-orange-300 border-orange-100 text-orange-950')}
+                        ${renderPan('cheddar_2', '2 Ched.', 'bg-orange-500 hover:bg-orange-400 border-orange-100 text-white')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderStationItems(containerId, items, expectedIds, defaultClasses, useItemUhcColor = false) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            items.forEach(ing => {
+                const isTarget = game.guideActive && expectedIds.includes(ing.id);
+                const itemBg = useItemUhcColor && ing.uhcClass ? ing.uhcClass : defaultClasses;
+                const btn = document.createElement('button');
+                btn.onclick = () => onCounterIngredientClick(ing.id);
+                btn.className = `gastro-pan rounded-xl lg:rounded-2xl p-1 lg:p-1.5 border lg:border-2 flex flex-col items-center justify-between text-center ${isTarget ? 'bg-lime-300 border-emerald-900 text-emerald-950 ring-2 lg:ring-4 ring-lime-300 animate-pulse' : itemBg}`;
+                btn.innerHTML = `
+                    <div class="w-full">${getIngredientSVG(ing)}</div>
+                    <span class="text-[8px] sm:text-[10px] lg:text-[11px] font-black leading-tight mt-0.5 line-clamp-1">${ing.name}</span>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        /**
+         * =====================================================================
+         * 10. LIVRE DE RECETTES ILLUSTRÉ (27 FICHES OFFICIELLES)
+         * =====================================================================
+         */
+        function filterBookCategory(cat) {
+            game.bookCatFilter = cat;
+            document.querySelectorAll('.book-cat-btn').forEach(btn => {
+                if (btn.dataset.bookCat === cat) {
+                    btn.classList.add('btn-glossy', 'ring-2', 'ring-white');
+                } else {
+                    btn.classList.remove('btn-glossy', 'ring-2', 'ring-white');
+                }
+            });
+            renderRecipeBook();
+        }
+
+        function toggleBookUnmasteredFilter() {
+            game.bookOnlyUnmastered = !game.bookOnlyUnmastered;
+            const btn = document.getElementById('btn-book-unmastered');
+            if (game.bookOnlyUnmastered) {
+                btn.classList.remove('bg-purple-800', 'text-pink-100');
+                btn.classList.add('bg-amber-400', 'text-amber-950', 'ring-2', 'ring-white');
+            } else {
+                btn.classList.add('bg-purple-800', 'text-pink-100');
+                btn.classList.remove('bg-amber-400', 'text-amber-950', 'ring-2', 'ring-white');
+            }
+            renderRecipeBook();
+        }
+
+        function renderRecipeBook() {
+            const grid = document.getElementById('recipe-book-grid');
+            const query = (document.getElementById('book-search-input')?.value || '').toLowerCase().trim();
+
+            const totalEarned = RECIPES.reduce((acc, item) => acc + Math.min(5, game.recipeStars[item.id] || 0), 0);
+            const masteredCount = RECIPES.filter(item => (game.recipeStars[item.id] || 0) >= 5).length;
+            const totalStarsEl = document.getElementById('book-total-stars');
+            if (totalStarsEl) {
+                totalStarsEl.textContent = `${totalEarned} / ${RECIPES.length * 5} ⭐ (${masteredCount}/${RECIPES.length} acquis)`;
+            }
+
+            const list = RECIPES.filter(r => {
+                const stars = Math.min(5, game.recipeStars[r.id] || 0);
+                const matchCat = game.bookCatFilter === 'ALL' || r.category === game.bookCatFilter;
+                const matchUnmastered = !game.bookOnlyUnmastered || stars < 5;
+                const matchText = !query ||
+                    r.name.toLowerCase().includes(query) ||
+                    r.note.toLowerCase().includes(query) ||
+                    r.steps.some(s => INGREDIENTS[s].name.toLowerCase().includes(query));
+                return matchCat && matchUnmastered && matchText;
+            });
+
+            grid.innerHTML = '';
+
+            if (list.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full bg-purple-950/80 border-2 border-amber-400/50 rounded-3xl p-8 text-center">
+                        <div class="text-4xl mb-2">🎉</div>
+                        <p class="font-cartoon text-xl text-amber-300">Aucune recette à afficher dans ce filtre !</p>
+                        <p class="text-xs font-bold text-pink-200 mt-1">Tous ces produits sont déjà maîtrisés à 5/5 ⭐ ou ne correspondent pas à la recherche.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.forEach(r => {
+                const stars = Math.min(5, game.recipeStars[r.id] || 0);
+                const isMastered = stars >= 5;
+                const card = document.createElement('div');
+                card.className = `bg-purple-950/90 border-2 ${isMastered ? 'border-amber-400 shadow-amber-500/20' : 'border-pink-400/50'} rounded-3xl overflow-hidden flex flex-col justify-between shadow-xl`;
+
+                let layersHtml = '';
+                if (r.isDualBigMac) {
+                    layersHtml = `
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="bg-black/35 border border-amber-400/40 rounded-2xl p-2">
+                                <div class="text-[10px] font-black uppercase text-amber-300 text-center mb-1">⬅️ TALON (Gauche)</div>
+                                <div class="space-y-1 text-[11px] font-extrabold">
+                                    <div class="bg-red-600 text-white px-2 py-0.5 rounded-lg">4. Steak 10:1</div>
+                                    <div class="bg-orange-400 text-orange-950 px-2 py-0.5 rounded-lg">3. 1 Cheddar</div>
+                                    <div class="bg-emerald-400 text-emerald-950 px-2 py-0.5 rounded-lg">2. Salade Mac</div>
+                                    <div class="bg-orange-300 text-orange-950 px-2 py-0.5 rounded-lg">1. Sauce Mac</div>
+                                    <div class="bg-amber-500 text-amber-950 px-2 py-0.5 rounded-lg">Base : Talon Mac</div>
+                                </div>
+                            </div>
+                            <div class="bg-black/35 border border-red-400/40 rounded-2xl p-2">
+                                <div class="text-[10px] font-black uppercase text-red-300 text-center mb-1">➡️ CENTRE (Droite)</div>
+                                <div class="space-y-1 text-[11px] font-extrabold">
+                                    <div class="bg-red-600 text-white px-2 py-0.5 rounded-lg">4. Steak 10:1</div>
+                                    <div class="bg-lime-600 text-white px-2 py-0.5 rounded-lg">3. 2 Cornichons</div>
+                                    <div class="bg-emerald-400 text-emerald-950 px-2 py-0.5 rounded-lg">2. Salade Mac</div>
+                                    <div class="bg-orange-300 text-orange-950 px-2 py-0.5 rounded-lg">1. Sauce Mac</div>
+                                    <div class="bg-amber-500 text-amber-950 px-2 py-0.5 rounded-lg">Base : Centre Mac</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    layersHtml = [...r.steps].reverse().map((stepId, revIdx) => {
+                        const ing = INGREDIENTS[stepId];
+                        const stepNum = r.steps.length - revIdx;
+                        return `
+                            <div class="${ing.color} border rounded-xl px-2.5 py-1 flex items-center justify-between text-xs font-extrabold">
+                                <span>${stepNum}. ${ing.name}</span>
+                                <div class="w-10 shrink-0">${getIngredientSVG(ing)}</div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <div class="${r.catColor} px-4 py-2 flex items-center justify-between text-white">
+                            <span class="text-xs font-black uppercase tracking-wider">${r.categoryLabel}</span>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex items-start justify-between gap-2">
+                                <h3 class="font-cartoon text-xl text-amber-300">${r.name}</h3>
+                                <div class="flex items-center gap-0.5 bg-black/40 px-2 py-0.5 rounded-full border border-white/15 shrink-0" title="${stars}/5 étoiles de maîtrise">
+                                    ${renderStarIcons(stars, 'text-xs')}
+                                </div>
+                            </div>
+                            ${isMastered
+                                ? `<span class="inline-block mt-1 px-2 py-0.5 rounded-md bg-emerald-500/25 border border-emerald-400/50 text-[10px] font-black uppercase tracking-wider text-emerald-300">✅ 100 % Acquis (5/5 ⭐)</span>`
+                                : stars > 0
+                                    ? `<span class="inline-block mt-1 px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-400/40 text-[10px] font-black uppercase tracking-wider text-amber-200">En cours (${stars}/5 ⭐ — réussis sans erreur ni aide pour monter jusqu'à 5⭐)</span>`
+                                    : `<span class="inline-block mt-1 px-2 py-0.5 rounded-md bg-white/10 text-[10px] font-bold uppercase tracking-wider text-pink-200/75">Non validé (0/5 ⭐)</span>`
+                            }
+                            <p class="text-xs font-bold text-pink-200/80 mt-2 mb-3">${r.note}</p>
+                            <div class="space-y-1">${layersHtml}</div>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-black/30 border-t border-white/10">
+                        <button onclick="practiceFromBook('${r.id}')" class="btn-glossy w-full py-2.5 rounded-2xl bg-amber-400 text-amber-950 font-black text-xs uppercase tracking-wider">
+                            🍔 Préparer ce produit au comptoir
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function practiceFromBook(recipeId) {
+            switchMode('free');
+            spawnNextCustomerOrder(recipeId);
+        }
+    </script>
+</body>
+</html>
