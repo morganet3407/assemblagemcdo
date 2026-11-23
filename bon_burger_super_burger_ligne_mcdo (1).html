@@ -1,0 +1,2168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bon Burger, Super Burger — Ligne McDo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #4a3525;
+            --cream-bg: #f6efe2;
+            --marble-light: #faf6ee;
+            --wood-warm: #d4a373;
+            --wood-dark: #9c6644;
+        }
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: var(--cream-bg);
+            color: var(--ink);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+        .font-hand {
+            font-family: 'Patrick Hand', cursive;
+        }
+        .ink-border {
+            border: 3px solid var(--ink);
+            box-shadow: 0 3px 0 var(--ink);
+        }
+        .ink-btn {
+            border: 2.5px solid var(--ink);
+            box-shadow: 0 3px 0 var(--ink);
+            transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.12s;
+        }
+        .ink-btn:hover { filter: brightness(1.04); }
+        .ink-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 var(--ink);
+        }
+
+        /* Bac gastro encastré */
+        .recessed-pan {
+            background: #f5ebe0;
+            border: 2.5px solid var(--ink);
+            box-shadow: inset 0 3px 6px rgba(74, 53, 37, 0.22), 0 2px 0 rgba(255,255,255,0.85);
+            transition: transform 0.1s ease, filter 0.12s;
+            overflow: hidden;
+            position: relative;
+        }
+        .recessed-pan:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.04);
+        }
+        .recessed-pan:active {
+            transform: translateY(1px) scale(0.96);
+        }
+        .pan-label-tag {
+            background: rgba(255, 253, 249, 0.94);
+            border: 1.5px solid var(--ink);
+            box-shadow: 0 1px 0 var(--ink);
+        }
+
+        /* Tapis & rail de préparation horizontal */
+        .conveyor-surface {
+            background-color: var(--marble-light);
+            background-image:
+                linear-gradient(90deg, rgba(74, 53, 37, 0.06) 1px, transparent 1px),
+                linear-gradient(rgba(74, 53, 37, 0.06) 1px, transparent 1px);
+            background-size: 26px 26px;
+        }
+        /* Fenêtre panoramique qui glisse automatiquement selon l'étape du burger */
+        .panoramic-viewport {
+            overflow-x: hidden;
+            position: relative;
+            width: 100%;
+        }
+        .panoramic-track {
+            display: flex;
+            width: 192%;
+            transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+            will-change: transform;
+        }
+        @media (max-width: 768px) {
+            .panoramic-track {
+                width: 310%;
+            }
+        }
+        .lace-doily {
+            background: #fffdf9;
+            border: 2.5px dashed #cbd5e1;
+            box-shadow: 0 4px 10px rgba(74, 53, 37, 0.14);
+        }
+
+        /* Ticket de caisse cranté */
+        .receipt-ticket {
+            background: #fffdf9;
+            border: 2.5px solid var(--ink);
+            box-shadow: 4px 4px 0 rgba(74, 53, 37, 0.22);
+            position: relative;
+        }
+        .receipt-ticket::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -7px;
+            height: 7px;
+            background:
+                linear-gradient(-45deg, transparent 5px, #fffdf9 0),
+                linear-gradient(45deg, transparent 5px, #fffdf9 0);
+            background-size: 12px 12px;
+        }
+
+        /* Empilement 3D volume sur le set de table */
+        @keyframes burgerLayer3DDrop {
+            0% { opacity: 0; transform: translateY(-26px) scale(1.12); }
+            65% { opacity: 1; transform: translateY(2px) scale(0.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .burger-3d-piece {
+            animation: burgerLayer3DDrop 0.26s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            filter: drop-shadow(0 3px 2px rgba(74, 53, 37, 0.28));
+        }
+
+        @keyframes gentleWobble {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-4deg); }
+            75% { transform: rotate(4deg); }
+        }
+        .wobble-err { animation: gentleWobble 0.32s ease-in-out; }
+
+        @keyframes tipPop {
+            0% { opacity: 1; transform: translateY(0) scale(0.85); }
+            100% { opacity: 0; transform: translateY(-48px) scale(1.2); }
+        }
+        .tip-floater {
+            animation: tipPop 0.95s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @media (hover: none), (pointer: coarse) {
+            .touch-split-overlay {
+                opacity: 1 !important;
+                position: static !important;
+                background: transparent !important;
+                padding: 0 !important;
+            }
+            .touch-split-hide {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- ========================================================= -->
+    <!-- BARRE SUPÉRIEURE                                          -->
+    <!-- ========================================================= -->
+    <header class="bg-[#ede0d4] border-b-4 border-[#4a3525] sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-3 sm:px-5 py-2 flex flex-wrap items-center justify-between gap-2">
+            <!-- Titre -->
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#f4a261] ink-border flex items-center justify-center text-lg sm:text-xl transform -rotate-3 shrink-0">
+                    🍔
+                </div>
+                <div class="leading-none">
+                    <h1 class="text-base sm:text-xl font-bold tracking-tight text-[#4a3525]">
+                        Bon Burger, <span class="text-[#c8553d]">Super Burger</span>
+                    </h1>
+                </div>
+            </div>
+
+            <!-- Navigation Modes + Volet déroulant + Actions rapides -->
+            <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
+                <button onclick="toggleSound()" id="btn-sound" class="ink-btn w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#fffdf9] flex items-center justify-center text-sm sm:text-base" title="Son ON/OFF">
+                    <span id="sound-icon">🔊</span>
+                </button>
+
+                <nav class="flex items-center bg-[#d5bdaf] p-1 rounded-2xl border-2 border-[#4a3525] gap-1">
+                    <button onclick="switchMode('free')" id="tab-mode-free" class="mode-tab ink-btn px-2.5 sm:px-3 py-1 rounded-xl text-xs font-bold bg-[#f4a261] text-[#4a3525]">
+                        🍔 Ligne
+                    </button>
+                    <button onclick="switchMode('rush')" id="tab-mode-rush" class="mode-tab px-2.5 sm:px-3 py-1 rounded-xl text-xs font-bold text-[#4a3525] hover:bg-white/40">
+                        ⏰ Rush
+                    </button>
+                    <button onclick="switchMode('book')" id="tab-mode-book" class="mode-tab px-2.5 sm:px-3 py-1 rounded-xl text-xs font-bold text-[#4a3525] hover:bg-white/40">
+                        📒 Carnet (27)
+                    </button>
+                </nav>
+
+                <!-- Volet déroulant des catégories -->
+                <div id="free-category-bar" class="relative">
+                    <select id="category-select" onchange="setCategoryFilter(this.value)" aria-label="Filtrer par poste"
+                        class="ink-btn bg-[#fffdf9] text-[#4a3525] px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer focus:outline-none">
+                        <option value="ALL">📂 Tous (27)</option>
+                        <option value="1">1• Bœuf 10:1</option>
+                        <option value="2">2• Bœuf 4:1</option>
+                        <option value="3">3• Bœuf 3:1</option>
+                        <option value="4">4• Poulet</option>
+                        <option value="5">5• Wraps/Veggie</option>
+                        <option value="6">6• Poisson</option>
+                    </select>
+                </div>
+
+                <!-- Actions Indice, Guide, Suivant -->
+                <div id="header-play-actions" class="flex items-center gap-1.5">
+                    <button onclick="triggerVisualHint()" class="ink-btn px-2.5 py-1.5 rounded-xl bg-[#f4a261] text-xs font-bold">
+                        💡 Indice
+                    </button>
+                    <button onclick="toggleGuideMode()" id="btn-guide-toggle" class="ink-btn px-2.5 py-1.5 rounded-xl bg-[#fffdf9] text-xs font-bold flex items-center gap-1">
+                        <span>👁️</span>
+                        <span id="guide-label">Guide : OFF</span>
+                    </button>
+                    <button onclick="skipCurrentOrder()" class="ink-btn px-2.5 py-1.5 rounded-xl bg-[#e3d5ca] text-xs font-bold" title="Commande suivante">
+                        ⏭️ Suivant
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========================================================= -->
+    <!-- VUE PRINCIPALE : TICKET EN HAUT À GAUCHE + LIGNE MCDO     -->
+    <!-- ========================================================= -->
+    <main id="make-line-view" class="flex-1 flex flex-col max-w-7xl w-full mx-auto px-2.5 sm:px-5 py-2.5 gap-2.5">
+
+        <!-- 1. ZONE HAUTE : TICKET DE CAISSE À GAUCHE + ÉCRAN KDS & MAÎTRISE À DROITE -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-stretch">
+
+            <!-- TICKET DE CAISSE PAPIER CRANTÉ EN HAUT À GAUCHE -->
+            <div class="lg:col-span-5 receipt-ticket rounded-t-2xl px-3.5 py-2.5 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between gap-2 pb-1.5 border-b-2 border-dashed border-[#d5bdaf]">
+                        <div class="flex items-center gap-1.5">
+                            <span id="ticket-number" class="font-hand text-sm font-bold text-[#785941]">#101</span>
+                            <span id="order-cat-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-[#4a3525] bg-[#ffadad] text-[#4a3525]">
+                                1 • BŒUF 10:1
+                            </span>
+                            <span id="order-duo-badge" class="hidden px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#e9d8fd] border border-[#4a3525] text-[#4a3525]">
+                                DUO 1/2
+                            </span>
+                        </div>
+                        <div id="patience-wrapper" class="flex items-center gap-1.5">
+                            <span id="patience-emoji" class="text-xs">⏱️</span>
+                            <div class="w-16 h-2 bg-[#e3d5ca] rounded-full overflow-hidden border border-[#4a3525]">
+                                <div id="patience-bar" class="h-full bg-[#6a994e] transition-all duration-200" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="duo-items-tracker" class="hidden mt-1.5 flex items-center gap-1 text-[10px] font-bold"></div>
+
+                    <div class="mt-1.5 flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <h2 id="order-title" class="text-lg sm:text-xl font-bold text-[#4a3525] leading-tight">
+                                    BIG MAC
+                                </h2>
+                                <span id="grill-slip-badge" class="hidden px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase bg-[#ffadad] text-[#4a3525] border border-[#4a3525]">
+                                    SANS CORNICHONS
+                                </span>
+                            </div>
+                            <p id="order-subtitle" class="text-[11px] font-medium text-[#785941] mt-0.5">
+                                ☆☆☆ • Recette standard
+                            </p>
+                        </div>
+                        <div id="order-progress-pills" class="flex flex-wrap justify-end gap-1 max-w-[90px] shrink-0 pt-1"></div>
+                    </div>
+                </div>
+
+                <div id="bubble-feedback" class="mt-2 pt-1.5 border-t border-dashed border-[#d5bdaf] font-hand text-sm sm:text-base font-bold text-[#4a3525] flex items-center gap-1.5">
+                    <span>👉</span>
+                    <span id="bubble-feedback-text">1. Prends le pain ou la tortilla tout à gauche !</span>
+                </div>
+            </div>
+
+            <!-- PANNEAU DROIT (7 cols) : ÉCRAN KDS DE MAÎTRISE + CONTRÔLES RUSH -->
+            <div class="lg:col-span-7 bg-[#fffdf9] ink-border rounded-2xl p-3 flex flex-col justify-between gap-2">
+                <!-- Bandeau Rush Chrono (visible uniquement en mode Rush) -->
+                <div id="rush-control-bar" class="hidden items-center justify-between gap-2 bg-[#f4a261] ink-border rounded-xl px-3 py-1.5">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base">⏰</span>
+                        <span id="rush-clock" class="text-base font-bold">01:30</span>
+                    </div>
+                    <span class="text-xs font-bold bg-[#fffdf9] px-2.5 py-0.5 rounded-lg border border-[#4a3525]">
+                        Combo <strong id="rush-combo-badge">x1</strong>
+                    </span>
+                    <button onclick="startRushSession()" class="ink-btn px-2.5 py-1 rounded-lg bg-[#fffdf9] text-xs font-bold">🔄 Relancer</button>
+                </div>
+
+                <!-- Tableau de bord Maîtrise & Statistiques en temps réel -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-[#faf6ee] border-2 border-[#4a3525] rounded-xl p-2 flex flex-col justify-between">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-[#785941]">⭐ Étoiles Totales</span>
+                        <div class="flex items-baseline justify-between mt-0.5">
+                            <span id="kds-total-stars" class="text-base sm:text-lg font-bold text-[#4a3525]">0 / 81</span>
+                            <span id="kds-mastered-count" class="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-[#fde68a] border border-[#4a3525]">0/27</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-[#faf6ee] border-2 border-[#4a3525] rounded-xl p-2 flex flex-col justify-between">
+                        <span id="kds-cat-label" class="text-[10px] font-bold uppercase tracking-wider text-[#785941] truncate">📂 Tous les postes</span>
+                        <div class="flex items-baseline justify-between mt-0.5">
+                            <span id="kds-cat-progress" class="text-base sm:text-lg font-bold text-[#2b9348]">0 / 27</span>
+                            <span class="text-[10px] font-bold text-[#785941]">acquis (3⭐)</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-[#faf6ee] border-2 border-[#4a3525] rounded-xl p-2 flex flex-col justify-between">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-[#785941]">🎯 Série & Précision</span>
+                        <div class="flex items-baseline justify-between mt-0.5">
+                            <span id="kds-streak-value" class="text-base sm:text-lg font-bold text-[#c8553d]">0 🔥</span>
+                            <span id="kds-accuracy-value" class="text-[10px] font-bold text-[#785941]">100 %</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Barre de révision rapide : Prochain burger non maîtrisé du poste -->
+                <div class="bg-[#f5ebe0] border-2 border-[#4a3525] rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="text-sm shrink-0">🎯</span>
+                        <span class="text-[11px] font-bold text-[#785941] shrink-0">À maîtriser :</span>
+                        <span id="kds-next-target-name" class="text-xs font-bold text-[#4a3525] truncate">BIG MAC</span>
+                    </div>
+                    <button id="btn-kds-target" onclick="practiceNextUnmastered()" class="ink-btn px-2.5 py-0.5 rounded-lg bg-[#f4a261] text-[11px] font-bold shrink-0">
+                        Lancer →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. PLAN DE TRAVAIL MCDO PANORAMIQUE (CAMÉRA QUI DÉFILE AU FIL DU BURGER) -->
+        <section id="make-line-counter" class="bg-[#fffdf9] ink-border rounded-3xl p-2.5 sm:p-3 flex flex-col gap-2">
+
+            <!-- Barre de repère & navigation manuelle rapide sur la ligne panoramique -->
+            <div class="flex items-center justify-between gap-1.5 px-1">
+                <div class="grid grid-cols-4 gap-1.5 flex-1 text-center text-[10px] sm:text-xs font-bold text-[#785941]">
+                    <button type="button" onclick="panCameraToStage('bread')" id="zone-lbl-bread" class="py-1 rounded-xl border-2 border-[#4a3525] bg-[#fde68a] text-[#4a3525] transition-all cursor-pointer">
+                        1. Pains
+                    </button>
+                    <button type="button" onclick="panCameraToStage('sauce')" id="zone-lbl-sauce" class="py-1 rounded-xl border border-dashed border-[#4a3525]/50 hover:bg-[#faf6ee] transition-all cursor-pointer">
+                        2. Sauces
+                    </button>
+                    <button type="button" onclick="panCameraToStage('garnish')" id="zone-lbl-garnish" class="py-1 rounded-xl border border-dashed border-[#4a3525]/50 hover:bg-[#faf6ee] transition-all cursor-pointer">
+                        3. Garnitures
+                    </button>
+                    <button type="button" onclick="panCameraToStage('protein')" id="zone-lbl-protein" class="py-1 rounded-xl border border-dashed border-[#4a3525]/50 hover:bg-[#faf6ee] transition-all cursor-pointer">
+                        4. Viandes
+                    </button>
+                </div>
+            </div>
+
+            <!-- FENÊTRE DE CAMÉRA FIXE À LA LARGEUR DE L'ÉCRAN -->
+            <div id="panoramic-viewport" class="panoramic-viewport rounded-2xl border-2 border-[#4a3525] bg-[#f5ebe0]/50 p-1.5 sm:p-2">
+                <!-- PISTE PANORAMIQUE QUI COULISSE -->
+                <div id="panoramic-track" class="panoramic-track items-stretch gap-2.5">
+
+                    <!-- COLONNE GAUCHE PLEINE HAUTEUR (2.2/12) : 1. PAINS & WRAPS -->
+                    <div class="w-[18%] bg-[#faf6ee] border-2 border-[#4a3525] rounded-2xl p-2 flex flex-col shrink-0">
+                        <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b-2 border-[#e3d5ca] shrink-0">
+                            <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                                <span class="w-4 h-4 rounded-full bg-[#457b9d] text-white text-[10px] inline-flex items-center justify-center">1</span>
+                                🍞 Pains & Wraps
+                            </span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#fde68a] border border-[#4a3525]">Gauche</span>
+                        </div>
+                        <div id="station-breads" class="flex-1 grid grid-cols-2 auto-rows-fr gap-1.5">
+                            <!-- Bacs pains -->
+                        </div>
+                    </div>
+
+                    <!-- ZONE CENTRALE (62%) : SAUCES + TABLE À GARNITURE EN HAUT, TAPIS DE GLISSEMENT EN BAS -->
+                    <div class="w-[62%] flex flex-col gap-2.5 shrink-0">
+                        <!-- Rangée supérieure centrale : Sauces (gauche) + Garnitures & Fromages (droite) -->
+                        <div class="grid grid-cols-12 gap-2.5 items-stretch">
+                            <!-- POSTE 2 (5 cols) : 2. SAUCES -->
+                            <div class="col-span-5 bg-[#faf6ee] border-2 border-[#4a3525] rounded-2xl p-2 flex flex-col justify-between">
+                                <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b-2 border-[#e3d5ca]">
+                                    <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                                        <span class="w-4 h-4 rounded-full bg-[#457b9d] text-white text-[10px] inline-flex items-center justify-center">2</span>
+                                        🧴 Sauces (Au-dessus)
+                                    </span>
+                                </div>
+                                <div id="station-sauces" class="flex-1 grid grid-cols-5 gap-1.5 items-center">
+                                    <!-- Flacons sauces -->
+                                </div>
+                            </div>
+
+                            <!-- POSTE 3 (7 cols) : 3. TABLE À GARNITURE & FROMAGES -->
+                            <div class="col-span-7 bg-[#faf6ee] border-2 border-[#4a3525] rounded-2xl p-2 flex flex-col justify-between">
+                                <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b-2 border-[#e3d5ca]">
+                                    <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                                        <span class="w-4 h-4 rounded-full bg-[#457b9d] text-white text-[10px] inline-flex items-center justify-center">3</span>
+                                        🥬 Table à Garniture & Fromages <span>🧀</span>
+                                    </span>
+                                    <span class="text-[10px] font-bold text-[#785941]">Cornichon/Tomate : 1 ou 2</span>
+                                </div>
+
+                                <div class="grid grid-cols-12 gap-2 items-stretch flex-1">
+                                    <div class="col-span-2 bg-[#e6ccb2]/60 border-2 border-[#4a3525] rounded-2xl p-1.5 flex flex-col justify-between">
+                                        <div class="text-[9px] font-bold uppercase tracking-wider text-center text-[#4a3525]">WHITE</div>
+                                        <div id="station-white-cheese" class="mt-auto"></div>
+                                    </div>
+
+                                    <div class="col-span-8 bg-[#ede0d4] border-2 border-[#4a3525] rounded-2xl p-1.5 flex flex-col justify-between gap-2">
+                                        <div id="station-garnish-row1" class="grid grid-cols-5 gap-1.5"></div>
+                                        <div id="station-garnish-row2" class="grid grid-cols-5 gap-1.5"></div>
+                                    </div>
+
+                                    <div class="col-span-2 bg-[#f4a261]/25 border-2 border-[#4a3525] rounded-2xl p-1.5 flex flex-col justify-between gap-1">
+                                        <div class="text-[9px] font-bold uppercase tracking-wider text-center text-[#4a3525]">CHEDDAR</div>
+                                        <div id="station-cheddar-col" class="flex flex-col gap-1 flex-1 justify-between"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tapis de préparation uniquement sous la zone centrale (Sauces + Garnitures) -->
+                        <div class="conveyor-surface border-2 border-[#4a3525] rounded-2xl py-2 px-3 flex-1 flex flex-col justify-center">
+                            <div id="conveyor-track" class="relative min-h-[145px] sm:min-h-[165px] w-full flex items-center">
+                                <div class="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-3 rounded-full bg-[#e3d5ca] border-2 border-[#4a3525]/40 pointer-events-none"></div>
+
+                                <div id="moving-burger-carriage" class="relative z-10 transition-all duration-500 ease-out" style="width: 24%; margin-left: 0%;">
+                                    <!-- Burger en cours d'assemblage -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- COLONNE DROITE PLEINE HAUTEUR (20%) : 4. VIANDES & CHAUD -->
+                    <div class="w-[18.5%] bg-[#faf6ee] border-2 border-[#4a3525] rounded-2xl p-2 flex flex-col shrink-0">
+                        <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b-2 border-[#e3d5ca] shrink-0">
+                            <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                                <span class="w-4 h-4 rounded-full bg-[#457b9d] text-white text-[10px] inline-flex items-center justify-center">4</span>
+                                🥩 Viandes & Chaud
+                            </span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ffadad] border border-[#4a3525]">Droite</span>
+                        </div>
+                        <div id="station-proteins" class="flex-1 grid grid-cols-2 auto-rows-fr gap-1.5">
+                            <!-- Bacs viandes -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ========================================================= -->
+    <!-- VUE CARNET DE RECETTES ILLUSTRÉ (27 FICHES OFFICIELLES)    -->
+    <!-- ========================================================= -->
+    <section id="recipe-book-view" class="hidden flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 flex-col gap-4">
+        <div class="bg-[#fffdf9] ink-border rounded-3xl p-4 flex flex-col gap-3">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b-2 border-[#e3d5ca]">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">⭐</span>
+                    <span class="text-sm sm:text-base font-bold">Maîtrise globale : <strong id="book-total-stars">0 / 81 ⭐</strong></span>
+                </div>
+                <button onclick="toggleBookUnmasteredFilter()" id="btn-book-unmastered" class="ink-btn px-3 py-1 rounded-xl text-xs font-bold bg-[#faf6ee]">
+                    🎯 À réviser (&lt; 3⭐)
+                </button>
+            </div>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                    <button onclick="filterBookCategory('ALL')" data-book-cat="ALL" class="book-cat-btn ink-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-[#f4a261] shrink-0">Toutes (27)</button>
+                    <button onclick="filterBookCategory('1')" data-book-cat="1" class="book-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-[#ffadad] border-2 border-[#4a3525] shrink-0">1• Bœuf 10:1</button>
+                    <button onclick="filterBookCategory('2')" data-book-cat="2" class="book-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-[#ff8fa3] border-2 border-[#4a3525] shrink-0">2• Bœuf 4:1</button>
+                    <button onclick="filterBookCategory('3')" data-book-cat="3" class="book-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-[#ffb3c1] border-2 border-[#4a3525] shrink-0">3• Bœuf 3:1</button>
+                    <button onclick="filterBookCategory('4')" data-book-cat="4" class="book-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-[#ffd166] border-2 border-[#4a3525] shrink-0">4• Poulet</button>
+                    <button onclick="filterBookCategory('5')" data-book-cat="5" class="book-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-[#95d5b2] border-2 border-[#4a3525] shrink-0">5• Wraps/Veggie</button>
+                    <button onclick="filterBookCategory('6')" data-book-cat="6" class="book-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-[#90e0ef] border-2 border-[#4a3525] shrink-0">6• Poisson</button>
+                </div>
+                <input type="text" id="book-search-input" oninput="renderRecipeBook()" placeholder="Chercher un burger, sauce..." class="bg-[#faf6ee] border-2 border-[#4a3525] rounded-xl px-3 py-1.5 text-xs font-bold placeholder-[#785941]/60 focus:outline-none sm:w-64">
+            </div>
+        </div>
+
+        <div id="recipe-book-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Fiches illustrées -->
+        </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- MODALE FIN DE SERVICE RUSH                                -->
+    <!-- ========================================================= -->
+    <div id="rush-end-modal" class="fixed inset-0 bg-[#4a3525]/70 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-[#fffdf9] ink-border rounded-3xl max-w-md w-full p-6 text-center">
+            <div class="text-5xl mb-2">🛎️</div>
+            <h3 class="text-2xl font-bold">Fin du Rush !</h3>
+            <p class="font-hand text-lg text-[#785941] mt-1">Voici le bilan de ton service sur la ligne :</p>
+
+            <div class="grid grid-cols-2 gap-3 my-5">
+                <div class="bg-[#faf6ee] p-3 rounded-2xl border-2 border-[#4a3525]">
+                    <div class="text-xs font-bold text-[#785941]">Produits Servis</div>
+                    <div id="rush-summary-clients" class="text-3xl font-bold text-[#2b9348] mt-1">0</div>
+                </div>
+                <div class="bg-[#faf6ee] p-3 rounded-2xl border-2 border-[#4a3525]">
+                    <div class="text-xs font-bold text-[#785941]">Précision</div>
+                    <div id="rush-summary-coins" class="text-3xl font-bold text-[#d97706] mt-1">100 %</div>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="closeRushEndModal(); switchMode('free');" class="ink-btn flex-1 py-3 rounded-2xl bg-[#e3d5ca] font-bold text-sm">
+                    Retour Ligne
+                </button>
+                <button onclick="closeRushEndModal(); startRushSession();" class="ink-btn flex-1 py-3 rounded-2xl bg-[#f4a261] font-bold text-sm">
+                    Rejouer Rush !
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * =====================================================================
+         * 1. MOTEUR SONORE ACOUSTIQUE & FEUTRÉ (Tone.js)
+         * =====================================================================
+         */
+        let soundOn = true;
+        let audioInitialized = false;
+        let softTapSynth, chimeSynth, errorSynth;
+
+        async function initToneAudio() {
+            if (audioInitialized || typeof Tone === 'undefined') return;
+            try {
+                await Tone.start();
+                softTapSynth = new Tone.MembraneSynth({
+                    pitchDecay: 0.02,
+                    octaves: 1.8,
+                    envelope: { attack: 0.004, decay: 0.1, sustain: 0 }
+                }).toDestination();
+                softTapSynth.volume.value = -9;
+
+                chimeSynth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: 'sine' },
+                    envelope: { attack: 0.01, decay: 0.4, sustain: 0.05, release: 0.6 }
+                }).toDestination();
+                chimeSynth.volume.value = -7;
+
+                errorSynth = new Tone.Synth({
+                    oscillator: { type: 'triangle' },
+                    envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.1 }
+                }).toDestination();
+                errorSynth.volume.value = -10;
+
+                audioInitialized = true;
+            } catch (err) {}
+        }
+
+        function toggleSound() {
+            soundOn = !soundOn;
+            document.getElementById('sound-icon').textContent = soundOn ? '🔊' : '🔇';
+            if (soundOn) initToneAudio();
+        }
+
+        function playCozySound(kind) {
+            if (!soundOn) return;
+            if (!audioInitialized) { initToneAudio(); return; }
+            try {
+                const now = Tone.now();
+                if (kind === 'place') softTapSynth.triggerAttackRelease('C3', '16n', now);
+                else if (kind === 'sauce') softTapSynth.triggerAttackRelease('G3', '32n', now);
+                else if (kind === 'serve') chimeSynth.triggerAttackRelease(['C5', 'E5', 'G5'], '8n', now);
+                else if (kind === 'error') errorSynth.triggerAttackRelease('F2', '8n', now);
+            } catch (e) {}
+        }
+
+        /**
+         * =====================================================================
+         * 2. ILLUSTRATIONS SVG RICHES : BACS REMPLIS & BURGER 3D EN VOLUME
+         * =====================================================================
+         */
+        function getPanFillSVG(ing) {
+            if (ing.id.includes('tortilla')) {
+                return `<svg viewBox="0 0 100 54" class="w-full h-11 block">
+                    <ellipse cx="50" cy="36" rx="42" ry="13" fill="#eab308" stroke="#4a3525" stroke-width="2"/>
+                    <ellipse cx="50" cy="31" rx="42" ry="13" fill="#fef08a" stroke="#4a3525" stroke-width="2"/>
+                    <ellipse cx="50" cy="26" rx="42" ry="13" fill="#fef9c3" stroke="#4a3525" stroke-width="2"/>
+                    <circle cx="34" cy="24" r="2" fill="#b45309" opacity="0.5"/><circle cx="62" cy="28" r="2.2" fill="#b45309" opacity="0.5"/><circle cx="48" cy="21" r="1.6" fill="#b45309" opacity="0.4"/>
+                </svg>`;
+            }
+            if (ing.id.includes('muffin')) {
+                return `<svg viewBox="0 0 100 54" class="w-full h-11 block">
+                    <rect x="12" y="24" width="76" height="22" rx="11" fill="#b45309" stroke="#4a3525" stroke-width="2"/>
+                    <rect x="12" y="16" width="76" height="22" rx="11" fill="#e09f5a" stroke="#4a3525" stroke-width="2"/>
+                    <ellipse cx="50" cy="25" rx="28" ry="6" fill="#fef3c7" opacity="0.75"/>
+                </svg>`;
+            }
+            if (ing.id.includes('vapeur')) {
+                return `<svg viewBox="0 0 100 54" class="w-full h-11 block">
+                    <path d="M12 42 Q12 14 50 14 Q88 14 88 42 Z" fill="#fef9c3" stroke="#4a3525" stroke-width="2"/>
+                    <path d="M12 42 Q50 47 88 42" fill="#fde047" stroke="#4a3525" stroke-width="2"/>
+                    <path d="M32 10 Q29 4 33 1 M50 9 Q47 3 51 0 M68 10 Q65 4 69 1" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/>
+                </svg>`;
+            }
+            if (ing.type === 'bread') {
+                const isBig = ing.id.includes('big') || ing.id.includes('royal') || ing.id.includes('cbo') || ing.id.includes('280');
+                return `<svg viewBox="0 0 100 54" class="w-full h-11 block">
+                    <rect x="10" y="34" width="80" height="12" rx="6" fill="#c27816" stroke="#4a3525" stroke-width="2"/>
+                    ${ing.id === 'pain_mac' ? `<rect x="12" y="25" width="76" height="10" rx="5" fill="#e09f5a" stroke="#4a3525" stroke-width="2"/>` : ''}
+                    <path d="M10 ${ing.id === 'pain_mac' ? '26' : '35'} Q10 10 50 10 Q90 10 90 ${ing.id === 'pain_mac' ? '26' : '35'} Z" fill="${isBig ? '#d97706' : '#e59838'}" stroke="#4a3525" stroke-width="2"/>
+                    <ellipse cx="34" cy="18" rx="3" ry="1.5" fill="#fef3c7"/><ellipse cx="50" cy="15" rx="3" ry="1.5" fill="#fef3c7"/><ellipse cx="66" cy="18" rx="3" ry="1.5" fill="#fef3c7"/>
+                </svg>`;
+            }
+            if (ing.type === 'sauce') {
+                return getIngredientSVG(ing);
+            }
+            if (ing.id.includes('tomate')) {
+                return `<svg viewBox="0 0 100 56" class="w-full h-12 block">
+                    <rect x="2" y="2" width="96" height="52" rx="8" fill="#fecaca"/>
+                    <g stroke="#7f1d1d" stroke-width="1.8">
+                        <ellipse cx="26" cy="20" rx="18" ry="12" fill="#ef4444"/><ellipse cx="26" cy="20" rx="12" ry="7" fill="#fca5a5"/>
+                        <ellipse cx="68" cy="18" rx="19" ry="12" fill="#dc2626"/><ellipse cx="68" cy="18" rx="13" ry="7" fill="#f87171"/>
+                        <ellipse cx="46" cy="34" rx="20" ry="13" fill="#ef4444"/><ellipse cx="46" cy="34" rx="14" ry="8" fill="#fca5a5"/>
+                        <ellipse cx="22" cy="40" rx="16" ry="10" fill="#dc2626"/>
+                        <ellipse cx="76" cy="39" rx="17" ry="11" fill="#ef4444"/>
+                    </g>
+                    <circle cx="42" cy="32" r="1.4" fill="#fef08a"/><circle cx="51" cy="35" r="1.4" fill="#fef08a"/><circle cx="65" cy="17" r="1.4" fill="#fef08a"/>
+                </svg>`;
+            }
+            if (ing.id.includes('cornichon')) {
+                return `<svg viewBox="0 0 100 56" class="w-full h-12 block">
+                    <rect x="2" y="2" width="96" height="52" rx="8" fill="#ecfccb"/>
+                    <g stroke="#365314" stroke-width="1.8">
+                        <ellipse cx="24" cy="18" rx="15" ry="10" fill="#65a30d"/><ellipse cx="52" cy="16" rx="16" ry="10" fill="#84cc16"/>
+                        <ellipse cx="78" cy="20" rx="15" ry="10" fill="#65a30d"/><ellipse cx="34" cy="35" rx="17" ry="11" fill="#84cc16"/>
+                        <ellipse cx="66" cy="36" rx="17" ry="11" fill="#65a30d"/><ellipse cx="50" cy="44" rx="15" ry="9" fill="#a3e635"/>
+                    </g>
+                </svg>`;
+            }
+            if (ing.id.includes('salade')) {
+                const c1 = ing.id.includes('batavia') ? '#16a34a' : '#22c55e';
+                const c2 = ing.id.includes('batavia') ? '#4ade80' : '#86efac';
+                return `<svg viewBox="0 0 100 56" class="w-full h-12 block">
+                    <rect x="2" y="2" width="96" height="52" rx="8" fill="#dcfce7"/>
+                    <path d="M6 24 Q18 8 32 20 Q46 6 60 20 Q76 8 94 22 L94 50 L6 50 Z" fill="${c1}" stroke="#14532d" stroke-width="2"/>
+                    <path d="M10 34 Q26 20 42 32 Q58 18 74 32 Q86 24 92 34" fill="none" stroke="${c2}" stroke-width="4" stroke-linecap="round"/>
+                    <path d="M14 44 Q34 32 52 44 Q70 32 88 44" fill="none" stroke="#bbf7d0" stroke-width="3" stroke-linecap="round"/>
+                </svg>`;
+            }
+            if (ing.id.includes('oignons_frits')) {
+                return `<svg viewBox="0 0 100 56" class="w-full h-12 block">
+                    <rect x="2" y="2" width="96" height="52" rx="8" fill="#fef3c7"/>
+                    <g fill="none" stroke-linecap="round" stroke-width="5">
+                        <path d="M12 20 L26 12 L40 22 L56 12 L72 22 L88 14" stroke="#d97706"/>
+                        <path d="M10 34 L28 24 L44 35 L62 23 L78 34 L90 26" stroke="#f59e0b"/>
+                        <path d="M14 46 L32 37 L50 46 L68 36 L86 45" stroke="#b45309"/>
+                    </g>
+                </svg>`;
+            }
+            if (ing.id.includes('oignons_frais')) {
+                return `<svg viewBox="0 0 100 56" class="w-full h-12 block">
+                    <rect x="2" y="2" width="96" height="52" rx="8" fill="#f3e8ff"/>
+                    <g fill="none" stroke="#7e22ce" stroke-width="2">
+                        <path d="M14 22 Q30 10 46 22" stroke-width="5" stroke="#ffffff"/><path d="M14 22 Q30 10 46 22"/>
+                        <path d="M52 20 Q68 8 86 20" stroke-width="5" stroke="#ffffff"/><path d="M52 20 Q68 8 86 20"/>
+                        <path d="M22 38 Q42 24 62 38" stroke-width="5" stroke="#ffffff"/><path d="M22 38 Q42 24 62 38"/>
+                        <path d="M44 46 Q66 34 86 46" stroke-width="5" stroke="#ffffff"/><path d="M44 46 Q66 34 86 46"/>
+                    </g>
+                </svg>`;
+            }
+            if (ing.id === 'bacon') {
+                return `<svg viewBox="0 0 100 56" class="w-full h-12 block">
+                    <rect x="2" y="2" width="96" height="52" rx="8" fill="#ffe4e6"/>
+                    <path d="M10 16 Q32 8 54 16 T90 16" fill="none" stroke="#be123c" stroke-width="7" stroke-linecap="round"/>
+                    <path d="M10 16 Q32 8 54 16 T90 16" fill="none" stroke="#fecdd3" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M10 31 Q32 23 54 31 T90 31" fill="none" stroke="#9f1239" stroke-width="7" stroke-linecap="round"/>
+                    <path d="M10 31 Q32 23 54 31 T90 31" fill="none" stroke="#fda4af" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M10 45 Q32 37 54 45 T90 45" fill="none" stroke="#be123c" stroke-width="6" stroke-linecap="round"/>
+                </svg>`;
+            }
+            if (ing.id === 'jalapenos') {
+                return `<svg viewBox="0 0 100 56" class="w-full h-12 block">
+                    <rect x="2" y="2" width="96" height="52" rx="8" fill="#dcfce7"/>
+                    <g stroke="#14532d" stroke-width="2">
+                        <circle cx="26" cy="20" r="11" fill="#15803d"/><circle cx="26" cy="20" r="4" fill="#fef9c3"/>
+                        <circle cx="62" cy="18" r="11" fill="#16a34a"/><circle cx="62" cy="18" r="4" fill="#fef9c3"/>
+                        <circle cx="44" cy="36" r="12" fill="#15803d"/><circle cx="44" cy="36" r="4.5" fill="#fef9c3"/>
+                        <circle cx="76" cy="38" r="10" fill="#16a34a"/><circle cx="76" cy="38" r="3.5" fill="#fef9c3"/>
+                    </g>
+                </svg>`;
+            }
+            if (ing.type === 'cheese') {
+                let fill = '#fb923c';
+                if (ing.id.includes('emmental')) fill = '#fef9c3';
+                else if (ing.id.includes('gouda')) fill = '#fde047';
+                return `<svg viewBox="0 0 100 54" class="w-full h-11 block">
+                    <polygon points="14,18 86,18 92,42 8,42" fill="${fill}" stroke="#4a3525" stroke-width="2"/>
+                    <polygon points="18,12 82,12 88,34 12,34" fill="${fill}" stroke="#4a3525" stroke-width="2"/>
+                    ${ing.id === 'cheddar_demi' ? `<line x1="50" y1="12" x2="50" y2="34" stroke="#4a3525" stroke-width="2" stroke-dasharray="3 2"/>` : ''}
+                </svg>`;
+            }
+            if (ing.id === 'oeuf_1') {
+                return `<svg viewBox="0 0 100 54" class="w-full h-11 block">
+                    <ellipse cx="50" cy="30" rx="38" ry="16" fill="#ffffff" stroke="#4a3525" stroke-width="2"/>
+                    <circle cx="50" cy="28" r="11" fill="#facc15" stroke="#4a3525" stroke-width="2"/>
+                    <circle cx="47" cy="25" r="3" fill="#fef9c3"/>
+                </svg>`;
+            }
+            if (ing.id === 'filet_poisson') {
+                return `<svg viewBox="0 0 100 54" class="w-full h-11 block">
+                    <rect x="16" y="18" width="68" height="26" rx="6" fill="#ca8a04" stroke="#4a3525" stroke-width="2"/>
+                    <rect x="14" y="12" width="68" height="24" rx="6" fill="#eab308" stroke="#4a3525" stroke-width="2"/>
+                </svg>`;
+            }
+            if (ing.id.includes('poulet') || ing.id.includes('chicken') || ing.id.includes('nuggets')) {
+                const fill = ing.id.includes('veggie') ? '#84cc16' : '#f59e0b';
+                return `<svg viewBox="0 0 100 54" class="w-full h-11 block">
+                    <rect x="16" y="20" width="68" height="22" rx="11" fill="#b45309" stroke="#4a3525" stroke-width="2"/>
+                    <rect x="14" y="12" width="68" height="22" rx="11" fill="${fill}" stroke="#4a3525" stroke-width="2"/>
+                </svg>`;
+            }
+            return `<svg viewBox="0 0 100 54" class="w-full h-11 block">
+                <ellipse cx="50" cy="35" rx="38" ry="12" fill="#5c3621" stroke="#4a3525" stroke-width="2"/>
+                <ellipse cx="50" cy="25" rx="38" ry="12" fill="#7c4a2d" stroke="#4a3525" stroke-width="2"/>
+                <circle cx="34" cy="23" r="2" fill="#fef3c7"/><circle cx="52" cy="27" r="2" fill="#fef3c7"/><circle cx="66" cy="22" r="2" fill="#fef3c7"/>
+            </svg>`;
+        }
+
+        function get3DBurgerLayerSVG(ing, isTopCrown = false) {
+            if (isTopCrown) {
+                const isTortilla = ing && ing.id && ing.id.includes('tortilla');
+                if (isTortilla) {
+                    return `<svg viewBox="0 0 160 54" class="w-32 sm:w-36 h-12 mx-auto block">
+                        <rect x="18" y="12" width="124" height="32" rx="16" fill="#fef08a" stroke="#4a3525" stroke-width="2.5"/>
+                        <path d="M45 12 L75 44 M95 12 L122 44" stroke="#ca8a04" stroke-width="2" stroke-dasharray="4 3"/>
+                        <rect x="52" y="18" width="56" height="18" rx="6" fill="#ef4444" stroke="#4a3525" stroke-width="2"/>
+                        <text x="80" y="30" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">WRAP</text>
+                    </svg>`;
+                }
+                // Exception Big Mac : fermeture finale avec la COURONNE bombée sésame
+                if (ing && ing.id === 'pain_mac') {
+                    return `<svg viewBox="0 0 160 52" class="w-32 sm:w-36 h-12 mx-auto block">
+                        <path d="M18 36 Q18 8 80 8 Q142 8 142 36 Z" fill="#e59838" stroke="#4a3525" stroke-width="2.5"/>
+                        <ellipse cx="80" cy="36" rx="62" ry="9" fill="#c27816" stroke="#4a3525" stroke-width="2"/>
+                        <ellipse cx="52" cy="18" rx="3.2" ry="1.6" fill="#fef9c3"/>
+                        <ellipse cx="80" cy="14" rx="3.2" ry="1.6" fill="#fef9c3"/>
+                        <ellipse cx="108" cy="18" rx="3.2" ry="1.6" fill="#fef9c3"/>
+                        <ellipse cx="66" cy="24" rx="3" ry="1.5" fill="#fef9c3"/>
+                        <ellipse cx="94" cy="24" rx="3" ry="1.5" fill="#fef9c3"/>
+                    </svg>`;
+                }
+                // Tous les autres burgers : fermeture finale avec le TALON (base plate du pain) par-dessus
+                const isVapeur = ing && ing.id && ing.id.includes('vapeur');
+                const heelSide = isVapeur ? '#fef08a' : '#d9822b';
+                const heelTop = isVapeur ? '#fef9c3' : '#e59838';
+                return `<svg viewBox="0 0 160 44" class="w-32 sm:w-36 h-10 mx-auto block">
+                    <path d="M20 14 L140 14 L136 28 Q80 35 24 28 Z" fill="${heelSide}" stroke="#4a3525" stroke-width="2.5"/>
+                    <ellipse cx="80" cy="14" rx="60" ry="10" fill="${heelTop}" stroke="#4a3525" stroke-width="2.5"/>
+                </svg>`;
+            }
+
+            if (ing.id.includes('tortilla')) {
+                return `<svg viewBox="0 0 160 44" class="w-32 sm:w-36 h-10 mx-auto block">
+                    <ellipse cx="80" cy="24" rx="68" ry="16" fill="#fef08a" stroke="#4a3525" stroke-width="2.5"/>
+                    <ellipse cx="80" cy="22" rx="60" ry="12" fill="#fef9c3"/>
+                    <circle cx="52" cy="21" r="2.2" fill="#b45309" opacity="0.5"/><circle cx="106" cy="25" r="2.2" fill="#b45309" opacity="0.5"/>
+                </svg>`;
+            }
+            if (ing.type === 'bread') {
+                // Exception Big Mac : bases plates (Talon et Centre)
+                if (ing.id === 'pain_mac_flat') {
+                    return `<svg viewBox="0 0 160 42" class="w-32 sm:w-36 h-9 mx-auto block">
+                        <path d="M20 15 L140 15 L136 29 Q80 36 24 29 Z" fill="#d9822b" stroke="#4a3525" stroke-width="2.5"/>
+                        <ellipse cx="80" cy="15" rx="60" ry="10" fill="#fef3c7" stroke="#4a3525" stroke-width="2.5"/>
+                    </svg>`;
+                }
+                // Base de montage standard : la COURONNE retournée (dôme vers le bas, mie vers le haut)
+                const isVapeur = ing.id.includes('vapeur');
+                const domeFill = isVapeur ? '#fef9c3' : '#e09f5a';
+                const crumbFill = isVapeur ? '#ffffff' : '#fef3c7';
+                return `<svg viewBox="0 0 160 48" class="w-32 sm:w-36 h-11 mx-auto block">
+                    <path d="M18 16 Q18 44 80 44 Q142 44 142 16 Z" fill="${domeFill}" stroke="#4a3525" stroke-width="2.5"/>
+                    <ellipse cx="80" cy="16" rx="62" ry="11" fill="${crumbFill}" stroke="#4a3525" stroke-width="2.5"/>
+                    ${!isVapeur ? `<ellipse cx="48" cy="33" rx="3" ry="1.5" fill="#fef9c3"/><ellipse cx="80" cy="37" rx="3" ry="1.5" fill="#fef9c3"/><ellipse cx="112" cy="33" rx="3" ry="1.5" fill="#fef9c3"/>` : ''}
+                </svg>`;
+            }
+
+            if (ing.type === 'sauce') {
+                let col = '#ef4444';
+                if (ing.id.includes('moutarde')) col = '#facc15';
+                else if (ing.id.includes('mac')) col = '#fb923c';
+                else if (ing.id.includes('tasty') || ing.id.includes('promo2')) col = '#ea580c';
+                else if (ing.id.includes('deluxe')) col = '#eab308';
+                else if (ing.id.includes('ranch') || ing.id.includes('mcchicken') || ing.id.includes('cbo') || ing.id.includes('filet')) col = '#f8fafc';
+                return `<svg viewBox="0 0 160 32" class="w-32 sm:w-36 h-7 mx-auto block">
+                    <path d="M30 16 Q42 6 60 14 Q80 5 100 14 Q118 6 130 16 Q122 26 100 22 Q80 28 60 22 Q38 26 30 16 Z" fill="${col}" stroke="#4a3525" stroke-width="2"/>
+                </svg>`;
+            }
+
+            if (ing.id.includes('salade')) {
+                return `<svg viewBox="0 0 160 34" class="w-32 sm:w-36 h-8 mx-auto block">
+                    <path d="M16 18 Q28 6 44 16 Q60 4 80 16 Q100 4 116 16 Q132 6 144 18 Q134 30 112 25 Q80 32 48 25 Q26 30 16 18 Z" fill="#22c55e" stroke="#14532d" stroke-width="2.2"/>
+                    <path d="M28 18 Q54 12 80 18 Q106 12 132 18" fill="none" stroke="#86efac" stroke-width="3" stroke-linecap="round"/>
+                </svg>`;
+            }
+
+            if (ing.id.includes('tomate')) {
+                return `<svg viewBox="0 0 160 32" class="w-32 sm:w-36 h-7 mx-auto block">
+                    <ellipse cx="58" cy="17" rx="34" ry="10" fill="#ef4444" stroke="#4a3525" stroke-width="2"/>
+                    <ellipse cx="58" cy="16" rx="26" ry="6.5" fill="#fca5a5"/>
+                    ${ing.id === 'tomate_2' ? `<ellipse cx="102" cy="17" rx="34" ry="10" fill="#dc2626" stroke="#4a3525" stroke-width="2"/><ellipse cx="102" cy="16" rx="26" ry="6.5" fill="#fca5a5"/>` : ''}
+                </svg>`;
+            }
+
+            if (ing.id.includes('cornichon')) {
+                return `<svg viewBox="0 0 160 30" class="w-32 sm:w-36 h-7 mx-auto block">
+                    <ellipse cx="${ing.id === 'cornichons_2' ? '58' : '80'}" cy="16" rx="24" ry="8.5" fill="#65a30d" stroke="#365314" stroke-width="2"/>
+                    ${ing.id === 'cornichons_2' ? `<ellipse cx="102" cy="16" rx="24" ry="8.5" fill="#84cc16" stroke="#365314" stroke-width="2"/>` : ''}
+                </svg>`;
+            }
+
+            if (ing.id === 'bacon') {
+                return `<svg viewBox="0 0 160 32" class="w-32 sm:w-36 h-7 mx-auto block">
+                    <path d="M22 14 Q52 6 82 14 T138 14" fill="none" stroke="#be123c" stroke-width="7" stroke-linecap="round"/>
+                    <path d="M22 14 Q52 6 82 14 T138 14" fill="none" stroke="#fecdd3" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>`;
+            }
+            if (ing.id.includes('oignons') || ing.id === 'jalapenos') {
+                const c = ing.id.includes('frits') ? '#f59e0b' : (ing.id === 'jalapenos' ? '#16a34a' : '#e2e8f0');
+                return `<svg viewBox="0 0 160 28" class="w-32 sm:w-36 h-6 mx-auto block">
+                    <path d="M30 16 L50 9 L70 18 L90 9 L110 18 L130 10" fill="none" stroke="#4a3525" stroke-width="6.5" stroke-linecap="round"/>
+                    <path d="M30 16 L50 9 L70 18 L90 9 L110 18 L130 10" fill="none" stroke="${c}" stroke-width="4" stroke-linecap="round"/>
+                </svg>`;
+            }
+
+            if (ing.type === 'cheese') {
+                let fill = '#fb923c';
+                if (ing.id.includes('emmental')) fill = '#fef9c3';
+                else if (ing.id.includes('gouda')) fill = '#fde047';
+                return `<svg viewBox="0 0 160 32" class="w-32 sm:w-36 h-7 mx-auto block">
+                    <polygon points="24,10 136,10 150,23 80,29 10,23" fill="${fill}" stroke="#4a3525" stroke-width="2.2"/>
+                </svg>`;
+            }
+
+            if (ing.id === 'oeuf_1') {
+                return `<svg viewBox="0 0 160 36" class="w-32 sm:w-36 h-8 mx-auto block">
+                    <ellipse cx="80" cy="21" rx="54" ry="12" fill="#ffffff" stroke="#4a3525" stroke-width="2.2"/>
+                    <circle cx="80" cy="18" r="10" fill="#facc15" stroke="#4a3525" stroke-width="2"/>
+                </svg>`;
+            }
+
+            let meatSide = '#5c3621';
+            let meatTop = '#7c4a2d';
+            if (ing.id === 'filet_poisson' || ing.id.includes('poulet') || ing.id.includes('chicken')) {
+                meatSide = '#b45309';
+                meatTop = '#f59e0b';
+            } else if (ing.id.includes('veggie')) {
+                meatSide = '#4d7c0f';
+                meatTop = '#84cc16';
+            }
+            return `<svg viewBox="0 0 160 40" class="w-32 sm:w-36 h-9 mx-auto block">
+                <path d="M22 18 L138 18 L135 29 Q80 37 25 29 Z" fill="${meatSide}" stroke="#4a3525" stroke-width="2.4"/>
+                <ellipse cx="80" cy="18" rx="58" ry="11" fill="${meatTop}" stroke="#4a3525" stroke-width="2.4"/>
+                <ellipse cx="62" cy="16" rx="12" ry="2.5" fill="rgba(255,255,255,0.2)"/>
+            </svg>`;
+        }
+
+        function getIngredientSVG(ing) {
+            if (ing.type === 'sauce') {
+                let liquid = '#ef4444';
+                let accent = '#fca5a5';
+                if (ing.id.includes('moutarde')) { liquid = '#facc15'; accent = '#fef08a'; }
+                else if (ing.id.includes('mac')) { liquid = '#fb923c'; accent = '#fed7aa'; }
+                else if (ing.id.includes('tasty') || ing.id.includes('promo2')) { liquid = '#ea580c'; accent = '#fdba74'; }
+                else if (ing.id.includes('deluxe')) { liquid = '#eab308'; accent = '#fef08a'; }
+                else if (ing.id.includes('ranch')) { liquid = '#f1f5f9'; accent = '#ffffff'; }
+                else if (ing.id.includes('mcchicken')) { liquid = '#fef9c3'; accent = '#ffffff'; }
+                else if (ing.id.includes('cbo')) { liquid = '#e7e5e4'; accent = '#fafaf9'; }
+                else if (ing.id.includes('filet')) { liquid = '#e0f2fe'; accent = '#ffffff'; }
+
+                return `<svg viewBox="0 0 48 64" class="w-7 sm:w-8 h-9 sm:h-10 mx-auto drop-shadow-xs">
+                    <path d="M21 11 L21 5 L31 5 L33 8" fill="none" stroke="#4a3525" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <rect x="19" y="10" width="10" height="5" rx="1.5" fill="#57534e" stroke="#4a3525" stroke-width="1.8"/>
+                    <rect x="16" y="15" width="16" height="5" rx="2" fill="#d6c2a8" stroke="#4a3525" stroke-width="1.8"/>
+                    <rect x="11" y="20" width="26" height="39" rx="7" fill="${liquid}" stroke="#4a3525" stroke-width="2.2"/>
+                    <rect x="14" y="23" width="5" height="33" rx="2.5" fill="${accent}" opacity="0.55"/>
+                    <rect x="14" y="31" width="20" height="16" rx="2.5" fill="#fffdf9" stroke="#4a3525" stroke-width="1.5"/>
+                    <circle cx="24" cy="39" r="4" fill="${liquid}" stroke="#4a3525" stroke-width="1.2"/>
+                </svg>`;
+            }
+            return getPanFillSVG(ing);
+        }
+
+        /**
+         * =====================================================================
+         * 3. CATALOGUE DES INGRÉDIENTS (SANS QUANTITÉS ML NI GRAMMES)
+         * =====================================================================
+         */
+        const INGREDIENTS = {
+            pain_reg: { id: 'pain_reg', name: 'Pain Reg', type: 'bread', color: 'bg-[#fde68a]' },
+            pain_reg_vapeur: { id: 'pain_reg_vapeur', name: 'Pain Reg Filet', type: 'bread', color: 'bg-[#fef9c3]' },
+            pain_mac: { id: 'pain_mac', name: 'Pain Mac (3x)', type: 'bread', color: 'bg-[#fde68a]' },
+            pain_royal: { id: 'pain_royal', name: 'Pain Royal', type: 'bread', color: 'bg-[#fcd34d]' },
+            pain_big_arch: { id: 'pain_big_arch', name: 'Pain Big Arch', type: 'bread', color: 'bg-[#f4a261]' },
+            pain_280: { id: 'pain_280', name: 'Pain 280', type: 'bread', color: 'bg-[#f4a261]' },
+            pain_cbo: { id: 'pain_cbo', name: 'Pain CBO', type: 'bread', color: 'bg-[#e9c46a]' },
+            grande_tortilla: { id: 'grande_tortilla', name: 'Grande Tortilla', type: 'bread', color: 'bg-[#fef08a]' },
+            petite_tortilla: { id: 'petite_tortilla', name: 'Petite Tortilla', type: 'bread', color: 'bg-[#fef9c3]' },
+
+            ketchup: { id: 'ketchup', name: 'Ketchup', type: 'sauce', color: 'bg-[#ffadad]' },
+            moutarde: { id: 'moutarde', name: 'Moutarde', type: 'sauce', color: 'bg-[#fde68a]' },
+            sauce_mac: { id: 'sauce_mac', name: 'Sauce Mac', type: 'sauce', color: 'bg-[#ffd6a5]' },
+            sauce_deluxe: { id: 'sauce_deluxe', name: 'Sauce Deluxe', type: 'sauce', color: 'bg-[#fdffb6]' },
+            sauce_tasty: { id: 'sauce_tasty', name: 'Sauce Tasty', type: 'sauce', color: 'bg-[#ffd6a5]' },
+            sauce_ranch: { id: 'sauce_ranch', name: 'Sauce Ranch', type: 'sauce', color: 'bg-[#f1f5f9]' },
+            sauce_mcchicken: { id: 'sauce_mcchicken', name: 'Sauce McChicken', type: 'sauce', color: 'bg-[#fef9c3]' },
+            sauce_cbo: { id: 'sauce_cbo', name: 'Sauce CBO', type: 'sauce', color: 'bg-[#e7e5e4]' },
+            sauce_promo2: { id: 'sauce_promo2', name: 'Sauce Promo 2', type: 'sauce', color: 'bg-[#f4a261]' },
+            sauce_filet: { id: 'sauce_filet', name: 'Sauce Filet', type: 'sauce', color: 'bg-[#e0f2fe]' },
+
+            oignons_frits: { id: 'oignons_frits', name: 'Oignons frits', shortName: 'Oig. frits', type: 'topping', color: 'bg-[#fde68a]' },
+            oignons_frais: { id: 'oignons_frais', name: 'Oignons frais', shortName: 'Oig. frais', type: 'topping', color: 'bg-[#f3e8ff]' },
+            bacon: { id: 'bacon', name: 'Bacon', shortName: 'Bacon', type: 'topping', color: 'bg-[#ffccd5]' },
+            jalapenos: { id: 'jalapenos', name: 'Jalapeños', shortName: 'Jalapeños', type: 'topping', color: 'bg-[#b7e4c7]' },
+            salade_mac: { id: 'salade_mac', name: 'Salade Mac', shortName: 'Sal. Mac', type: 'topping', color: 'bg-[#b7e4c7]' },
+            salade_batavia: { id: 'salade_batavia', name: 'Batavia', shortName: 'Batavia', type: 'topping', color: 'bg-[#95d5b2]' },
+            cornichons_1: { id: 'cornichons_1', name: '1 Cornichon', shortName: '1 Cornichon', type: 'topping', color: 'bg-[#d8f3dc]' },
+            cornichons_2: { id: 'cornichons_2', name: '2 Cornichons', shortName: '2 Cornichons', type: 'topping', color: 'bg-[#b7e4c7]' },
+            tomate_1: { id: 'tomate_1', name: '1 Tomate', shortName: '1 Tomate', type: 'topping', color: 'bg-[#ffccd5]' },
+            tomate_2: { id: 'tomate_2', name: '2 Tomates', shortName: '2 Tomates', type: 'topping', color: 'bg-[#ffadad]' },
+
+            emmental_1: { id: 'emmental_1', name: 'Emmental (White)', shortName: 'White Ched.', type: 'cheese', color: 'bg-[#fef9c3]' },
+            gouda_1: { id: 'gouda_1', name: 'Gouda', shortName: 'Gouda', type: 'cheese', color: 'bg-[#fde68a]' },
+            cheddar_demi: { id: 'cheddar_demi', name: '1/2 Cheddar', shortName: '1/2 Ched.', type: 'cheese', color: 'bg-[#ffd6a5]' },
+            cheddar_1: { id: 'cheddar_1', name: '1 Cheddar', shortName: '1 Ched.', type: 'cheese', color: 'bg-[#ffbe76]' },
+            cheddar_2: { id: 'cheddar_2', name: '2 Cheddars', shortName: '2 Ched.', type: 'cheese', color: 'bg-[#f4a261]' },
+
+            viande_10_1: { id: 'viande_10_1', name: 'Steak 10:1', type: 'protein', color: 'bg-[#d5bdaf]' },
+            viande_4_1: { id: 'viande_4_1', name: 'Steak 4:1', type: 'protein', color: 'bg-[#d6ccc2]' },
+            viande_3_1: { id: 'viande_3_1', name: 'Steak 3:1', type: 'protein', color: 'bg-[#e3d5ca]' },
+            poulet_mcchicken: { id: 'poulet_mcchicken', name: 'Poulet McChicken', type: 'protein', color: 'bg-[#fde68a]' },
+            poulet_ptit_chicken_2: { id: 'poulet_ptit_chicken_2', name: "2x P'tit Chicken", type: 'protein', color: 'bg-[#fde68a]' },
+            poulet_cbo: { id: 'poulet_cbo', name: 'Poulet CBO', type: 'protein', color: 'bg-[#f4a261]' },
+            poulet_wrap_1: { id: 'poulet_wrap_1', name: '1 Poulet Wrap', type: 'protein', color: 'bg-[#fde68a]' },
+            poulet_wrap_2: { id: 'poulet_wrap_2', name: '2 Poulet Wrap', type: 'protein', color: 'bg-[#f4a261]' },
+            nuggets_veggie_2: { id: 'nuggets_veggie_2', name: '2 Nuggets Veggie', type: 'protein', color: 'bg-[#d8f3dc]' },
+            nuggets_veggie_4: { id: 'nuggets_veggie_4', name: '4 Nuggets Veggie', type: 'protein', color: 'bg-[#b7e4c7]' },
+            filet_poisson: { id: 'filet_poisson', name: 'Filet de Poisson', type: 'protein', color: 'bg-[#caf0f8]' }
+        };
+
+        /**
+         * =====================================================================
+         * 4. LES 27 RECETTES OFFICIELLES COMPLÈTES (SANS ŒUFS)
+         * =====================================================================
+         */
+        const RECIPES = [
+            {
+                id: 'big_mac',
+                name: 'BIG MAC',
+                category: '1',
+                categoryLabel: '1 • BŒUF 10:1',
+                catColor: 'bg-[#ffadad]',
+                isDualBigMac: true,
+                note: 'Montage parallèle Talon + Centre : Pain Mac (3x) • Sauce Mac (x2) • Salade Mac (x2) • 1 Cheddar (Talon) + 2 Cornichons (Centre) • Steak 10:1 (x2) • Fermeture Couronne',
+                steps: ['pain_mac', 'sauce_mac', 'salade_mac', 'cheddar_1', 'cornichons_2', 'viande_10_1']
+            },
+            { id: 'hamburger', name: 'HAMBURGER', category: '1', categoryLabel: '1 • BŒUF 10:1', catColor: 'bg-[#ffadad]', note: 'Couronne Pain Reg • Moutarde • Ketchup • 1 Cornichon • Steak 10:1 • Fermeture Talon', steps: ['pain_reg', 'moutarde', 'ketchup', 'cornichons_1', 'viande_10_1'] },
+            { id: 'cheeseburger', name: 'CHEESEBURGER', category: '1', categoryLabel: '1 • BŒUF 10:1', catColor: 'bg-[#ffadad]', note: 'Couronne Pain Reg • Moutarde • Ketchup • 1 Cornichon • 1 Cheddar • Steak 10:1 • Fermeture Talon', steps: ['pain_reg', 'moutarde', 'ketchup', 'cornichons_1', 'cheddar_1', 'viande_10_1'] },
+            { id: 'double_cheese', name: 'DOUBLE CHEESEBURGER', category: '1', categoryLabel: '1 • BŒUF 10:1', catColor: 'bg-[#ffadad]', note: 'Pain Reg • Moutarde • Ketchup • 2 Cornichons • 1 Cheddar • Steak 10:1 • 1 Cheddar • Steak 10:1', steps: ['pain_reg', 'moutarde', 'ketchup', 'cornichons_2', 'cheddar_1', 'viande_10_1', 'cheddar_1', 'viande_10_1'] },
+            { id: 'double_cheese_bacon', name: 'DOUBLE CHEESE BACON', category: '1', categoryLabel: '1 • BŒUF 10:1', catColor: 'bg-[#ffadad]', note: 'Pain Reg • Moutarde • Ketchup • 2 Cornichons • 1 Cheddar • Bacon • Steak 10:1 • 1 Cheddar • Steak 10:1', steps: ['pain_reg', 'moutarde', 'ketchup', 'cornichons_2', 'cheddar_1', 'bacon', 'viande_10_1', 'cheddar_1', 'viande_10_1'] },
+            { id: 'deal_boeuf', name: 'DEAL BŒUF', category: '1', categoryLabel: '1 • BŒUF 10:1', catColor: 'bg-[#ffadad]', note: 'Pain Reg • Ketchup • Sauce Ranch • Salade Mac • Steak 10:1 • 1 Cheddar • Steak 10:1', steps: ['pain_reg', 'ketchup', 'sauce_ranch', 'salade_mac', 'viande_10_1', 'cheddar_1', 'viande_10_1'] },
+
+            { id: 'royal_cheese', name: 'ROYAL CHEESE', category: '2', categoryLabel: '2 • BŒUF 4:1', catColor: 'bg-[#ff8fa3]', note: 'Pain Royal • Moutarde • Ketchup • Oignons frais • 2 Cornichons • 1 Cheddar • Steak 4:1 • 1 Cheddar', steps: ['pain_royal', 'moutarde', 'ketchup', 'oignons_frais', 'cornichons_2', 'cheddar_1', 'viande_4_1', 'cheddar_1'] },
+            { id: 'royal_bacon', name: 'ROYAL BACON', category: '2', categoryLabel: '2 • BŒUF 4:1', catColor: 'bg-[#ff8fa3]', note: 'Pain Royal • Moutarde • Ketchup • Oignons frais • 2 Cornichons • Bacon • Steak 4:1 • 1 Cheddar', steps: ['pain_royal', 'moutarde', 'ketchup', 'oignons_frais', 'cornichons_2', 'bacon', 'viande_4_1', 'cheddar_1'] },
+            { id: 'royal_deluxe', name: 'ROYAL DELUXE', category: '2', categoryLabel: '2 • BŒUF 4:1', catColor: 'bg-[#ff8fa3]', note: 'Pain Royal • Sauce Deluxe • Oignons frais • Salade Mac • 1 Tomate • 1 Cheddar • Steak 4:1', steps: ['pain_royal', 'sauce_deluxe', 'oignons_frais', 'salade_mac', 'tomate_1', 'cheddar_1', 'viande_4_1'] },
+            { id: 'big_tasty_1v', name: 'BIG TASTY 1 VIANDE', category: '2', categoryLabel: '2 • BŒUF 4:1', catColor: 'bg-[#ff8fa3]', note: 'Pain Big Arch • Sauce Tasty • Oignons frais • Salade Mac • 2 Tomates • Emmental • Steak 4:1 • Emmental', steps: ['pain_big_arch', 'sauce_tasty', 'oignons_frais', 'salade_mac', 'tomate_2', 'emmental_1', 'viande_4_1', 'emmental_1'] },
+            { id: 'big_tasty_2v', name: 'BIG TASTY 2 VIANDES', category: '2', categoryLabel: '2 • BŒUF 4:1', catColor: 'bg-[#ff8fa3]', note: 'Pain Big Arch • Sauce Tasty • Oignons frais • Salade Mac • 2 Tomates • Emmental • Steak 4:1 • Steak 4:1 • Emmental', steps: ['pain_big_arch', 'sauce_tasty', 'oignons_frais', 'salade_mac', 'tomate_2', 'emmental_1', 'viande_4_1', 'viande_4_1', 'emmental_1'] },
+
+            { id: 'mcextreme_1v', name: 'McEXTREME 1 VIANDE', category: '3', categoryLabel: '3 • BŒUF 3:1', catColor: 'bg-[#ffb3c1]', note: 'Pain Big Arch • Sauce Promo 2 • Oignons frais • Bacon • Gouda • Steak 3:1 • Gouda', steps: ['pain_big_arch', 'sauce_promo2', 'oignons_frais', 'bacon', 'gouda_1', 'viande_3_1', 'gouda_1'] },
+            { id: 'mcextreme_2v', name: 'McEXTREME 2 VIANDES', category: '3', categoryLabel: '3 • BŒUF 3:1', catColor: 'bg-[#ffb3c1]', note: 'Pain Big Arch • Sauce Promo 2 • Oignons frais • Bacon • Gouda • Steak 3:1 • Gouda • Steak 3:1', steps: ['pain_big_arch', 'sauce_promo2', 'oignons_frais', 'bacon', 'gouda_1', 'viande_3_1', 'gouda_1', 'viande_3_1'] },
+            { id: 'burger_280', name: '280', category: '3', categoryLabel: '3 • BŒUF 3:1', catColor: 'bg-[#ffb3c1]', note: 'Pain 280 • Ketchup • Sauce McChicken • Oignons frais • 2 Tomates • 2 Cheddars • Steak 3:1 • Emmental', steps: ['pain_280', 'ketchup', 'sauce_mcchicken', 'oignons_frais', 'tomate_2', 'cheddar_2', 'viande_3_1', 'emmental_1'] },
+
+            { id: 'mcchicken', name: 'McCHICKEN', category: '4', categoryLabel: '4 • POULET', catColor: 'bg-[#ffd166]', note: 'Pain Royal • Sauce McChicken • Salade Mac • Poulet McChicken', steps: ['pain_royal', 'sauce_mcchicken', 'salade_mac', 'poulet_mcchicken'] },
+            { id: 'deal_chicken', name: 'DEAL CHICKEN', category: '4', categoryLabel: '4 • POULET', catColor: 'bg-[#ffd166]', note: "Pain Reg • Ketchup • Sauce Ranch • Salade Mac • 2x P'tit Chicken", steps: ['pain_reg', 'ketchup', 'sauce_ranch', 'salade_mac', 'poulet_ptit_chicken_2'] },
+            { id: 'cbo', name: 'CBO', category: '4', categoryLabel: '4 • POULET', catColor: 'bg-[#ffd166]', note: 'Pain CBO • Sauce CBO • Oignons frits • Salade Mac • Bacon • 1 Cheddar • Poulet CBO', steps: ['pain_cbo', 'sauce_cbo', 'oignons_frits', 'salade_mac', 'bacon', 'cheddar_1', 'poulet_cbo'] },
+
+            { id: 'mcwrap_ny', name: 'McWRAP NEW YORK', category: '5', categoryLabel: '5 • WRAPS / VEGGIE', catColor: 'bg-[#95d5b2]', note: 'Grande Tortilla • Sauce CBO • Batavia • 2 Tomates • 1 Cheddar • Bacon • 2 Poulet Wrap', steps: ['grande_tortilla', 'sauce_cbo', 'salade_batavia', 'tomate_2', 'cheddar_1', 'bacon', 'poulet_wrap_2'] },
+            { id: 'mcwrap_veggie', name: 'McWRAP VEGGIE', category: '5', categoryLabel: '5 • WRAPS / VEGGIE', catColor: 'bg-[#95d5b2]', note: 'Grande Tortilla • Sauce CBO • Oignons frits • Batavia • 2 Tomates • 1 Cheddar • 4 Nuggets Veggie', steps: ['grande_tortilla', 'sauce_cbo', 'oignons_frits', 'salade_batavia', 'tomate_2', 'cheddar_1', 'nuggets_veggie_4'] },
+            { id: 'ptit_wrap_poulet_ranch', name: "P'TIT WRAP POULET RANCH", category: '5', categoryLabel: '5 • WRAPS / VEGGIE', catColor: 'bg-[#95d5b2]', note: 'Petite Tortilla • Sauce Ranch • Oignons frits • Salade Mac • 1/2 Cheddar • 1 Poulet Wrap', steps: ['petite_tortilla', 'sauce_ranch', 'oignons_frits', 'salade_mac', 'cheddar_demi', 'poulet_wrap_1'] },
+            { id: 'ptit_wrap_veggie_ranch', name: "P'TIT WRAP VEGGIE RANCH", category: '5', categoryLabel: '5 • WRAPS / VEGGIE', catColor: 'bg-[#95d5b2]', note: 'Petite Tortilla • Sauce Ranch • Oignons frits • Salade Mac • 1/2 Cheddar • 2 Nuggets Veggie', steps: ['petite_tortilla', 'sauce_ranch', 'oignons_frits', 'salade_mac', 'cheddar_demi', 'nuggets_veggie_2'] },
+
+            { id: 'mcfish_ketchup', name: 'McFISH / KETCHUP', category: '6', categoryLabel: '6 • POISSON', catColor: 'bg-[#90e0ef]', note: 'Pain Reg • Ketchup • Filet de Poisson', steps: ['pain_reg', 'ketchup', 'filet_poisson'] },
+            { id: 'filet_o_fish', name: 'FILET-O-FISH', category: '6', categoryLabel: '6 • POISSON', catColor: 'bg-[#90e0ef]', note: 'Pain Reg Filet • Sauce Filet • Filet de Poisson • 1/2 Cheddar', steps: ['pain_reg_vapeur', 'sauce_filet', 'filet_poisson', 'cheddar_demi'] },
+            { id: 'double_filet_o_fish', name: 'DOUBLE FILET-O-FISH', category: '6', categoryLabel: '6 • POISSON', catColor: 'bg-[#90e0ef]', note: 'Pain Reg Filet • Sauce Filet • Filet de Poisson • 1 Cheddar • Filet de Poisson', steps: ['pain_reg_vapeur', 'sauce_filet', 'filet_poisson', 'cheddar_1', 'filet_poisson'] },
+            { id: 'deal_poisson', name: 'DEAL POISSON', category: '6', categoryLabel: '6 • POISSON', catColor: 'bg-[#90e0ef]', note: 'Pain Reg • Ketchup • Sauce Ranch • Salade Mac • 1 Tomate • Filet de Poisson', steps: ['pain_reg', 'ketchup', 'sauce_ranch', 'salade_mac', 'tomate_1', 'filet_poisson'] },
+            { id: 'fish_new_york', name: 'FISH NEW YORK', category: '6', categoryLabel: '6 • POISSON', catColor: 'bg-[#90e0ef]', note: 'Pain Royal • Moutarde • Sauce McChicken • 2 Cornichons • Salade Mac • 1 Tomate • Filet de Poisson • Emmental', steps: ['pain_royal', 'moutarde', 'sauce_mcchicken', 'cornichons_2', 'salade_mac', 'tomate_1', 'filet_poisson', 'emmental_1'] },
+            { id: 'double_fish_new_york', name: 'DOUBLE FISH NEW YORK', category: '6', categoryLabel: '6 • POISSON', catColor: 'bg-[#90e0ef]', note: 'Pain Royal • Moutarde • Sauce McChicken • 2 Cornichons • Salade Mac • 1 Tomate • Filet de Poisson • Emmental • Filet de Poisson', steps: ['pain_royal', 'moutarde', 'sauce_mcchicken', 'cornichons_2', 'salade_mac', 'tomate_1', 'filet_poisson', 'emmental_1', 'filet_poisson'] }
+        ];
+
+        const GRILL_SLIPS = [
+            { id: 'no_pickles', label: 'SANS Cornichons', type: 'remove', targets: ['cornichons_1', 'cornichons_2'] },
+            { id: 'no_onions', label: 'SANS Oignons', type: 'remove', targets: ['oignons_frais', 'oignons_frits'] },
+            { id: 'no_tomato', label: 'SANS Tomate', type: 'remove', targets: ['tomate_1', 'tomate_2'] },
+            { id: 'extra_bacon', label: 'EXTRA Bacon', type: 'extra', addId: 'bacon' },
+            { id: 'extra_cheddar', label: 'EXTRA Cheddar', type: 'extra', addId: 'cheddar_1' }
+        ];
+
+        /**
+         * =====================================================================
+         * 5. ÉTAT GLOBAL DU JEU
+         * =====================================================================
+         */
+        let game = {
+            mode: 'free',
+            catFilter: 'ALL',
+            bookCatFilter: 'ALL',
+            bookOnlyUnmastered: false,
+            guideActive: false,
+            ticketCounter: 100,
+            currentRecipe: null,
+            activeSteps: [],
+            activeGrillSlip: null,
+            duoQueue: [],
+            duoIndex: 0,
+            stepIndex: 0,
+            itemMistakes: 0,
+            itemUsedHelp: false,
+            recipeStars: {},
+            stack: [],
+            bigMacDual: { talon: [], centre: [], hasCornichons: false, hasCheddar: false },
+            served: 0,
+            streak: 0,
+            totalClicks: 0,
+            validClicks: 0,
+            combo: 1,
+            patience: 100,
+            patienceTimer: null,
+            rushSeconds: 90,
+            rushClockTimer: null,
+            rushClientsCount: 0,
+            locking: false
+        };
+
+        window.onload = function () {
+            loadRecipeStars();
+            renderAllCounterStations();
+            renderRecipeBook();
+            updateKDSSummaryPanel();
+            spawnNextCustomerOrder();
+        };
+
+        function loadRecipeStars() {
+            try {
+                const raw = localStorage.getItem('mcdo_rush_recipe_stars_v1');
+                if (raw) game.recipeStars = JSON.parse(raw) || {};
+            } catch (e) { game.recipeStars = {}; }
+        }
+
+        function saveRecipeStars() {
+            try {
+                localStorage.setItem('mcdo_rush_recipe_stars_v1', JSON.stringify(game.recipeStars));
+            } catch (e) {}
+        }
+
+        function renderStarIcons(starsCount, sizeClass = 'text-xs') {
+            return [1, 2, 3].map(n =>
+                n <= starsCount
+                    ? `<span class="${sizeClass} text-[#e59824]">⭐</span>`
+                    : `<span class="${sizeClass} text-[#cbbba8]">☆</span>`
+            ).join('');
+        }
+
+        const CATEGORY_NAMES = {
+            'ALL': '📂 Tous les postes',
+            '1': '1• Bœuf 10:1',
+            '2': '2• Bœuf 4:1',
+            '3': '3• Bœuf 3:1',
+            '4': '4• Poulet',
+            '5': '5• Wraps/Veggie',
+            '6': '6• Poisson'
+        };
+
+        function updateKDSSummaryPanel() {
+            const totalEarned = RECIPES.reduce((acc, r) => acc + (game.recipeStars[r.id] || 0), 0);
+            const totalMastered = RECIPES.filter(r => (game.recipeStars[r.id] || 0) === 3).length;
+
+            const starsEl = document.getElementById('kds-total-stars');
+            if (starsEl) starsEl.textContent = `${totalEarned} / ${RECIPES.length * 3}`;
+
+            const countEl = document.getElementById('kds-mastered-count');
+            if (countEl) countEl.textContent = `${totalMastered}/${RECIPES.length}`;
+
+            const scopeRecipes = game.catFilter === 'ALL'
+                ? RECIPES
+                : RECIPES.filter(r => r.category === game.catFilter);
+            const scopeMastered = scopeRecipes.filter(r => (game.recipeStars[r.id] || 0) === 3).length;
+
+            const catLblEl = document.getElementById('kds-cat-label');
+            if (catLblEl) catLblEl.textContent = CATEGORY_NAMES[game.catFilter] || '📂 Tous les postes';
+
+            const catProgEl = document.getElementById('kds-cat-progress');
+            if (catProgEl) catProgEl.textContent = `${scopeMastered} / ${scopeRecipes.length}`;
+
+            const streakEl = document.getElementById('kds-streak-value');
+            if (streakEl) streakEl.textContent = `${game.streak} 🔥`;
+
+            const acc = game.totalClicks === 0 ? 100 : Math.round((game.validClicks / game.totalClicks) * 100);
+            const accEl = document.getElementById('kds-accuracy-value');
+            if (accEl) accEl.textContent = `${acc} %`;
+
+            const nextUnmastered = scopeRecipes.find(r => (game.recipeStars[r.id] || 0) < 3 && (!game.currentRecipe || r.id !== game.currentRecipe.id))
+                || scopeRecipes.find(r => (game.recipeStars[r.id] || 0) < 3);
+
+            const targetNameEl = document.getElementById('kds-next-target-name');
+            const targetBtnEl = document.getElementById('btn-kds-target');
+            if (targetNameEl && targetBtnEl) {
+                if (nextUnmastered) {
+                    const st = game.recipeStars[nextUnmastered.id] || 0;
+                    targetNameEl.textContent = `${nextUnmastered.name} (${st}/3⭐)`;
+                    targetBtnEl.dataset.targetId = nextUnmastered.id;
+                    targetBtnEl.textContent = 'Lancer →';
+                } else {
+                    targetNameEl.textContent = 'Tout maîtrisé à 100 % ! 🎉';
+                    targetBtnEl.dataset.targetId = '';
+                    targetBtnEl.textContent = 'Bravo ⭐';
+                }
+            }
+        }
+
+        function practiceNextUnmastered() {
+            const btn = document.getElementById('btn-kds-target');
+            const targetId = btn ? btn.dataset.targetId : '';
+            if (!targetId) return;
+            if (game.mode !== 'free') switchMode('free');
+            spawnNextCustomerOrder(targetId);
+        }
+
+        /**
+         * =====================================================================
+         * 6. MODES DE JEU (LIGNE, RUSH, CARNET)
+         * =====================================================================
+         */
+        function switchMode(newMode) {
+            stopTimers();
+            game.mode = newMode;
+
+            document.querySelectorAll('.mode-tab').forEach(btn => {
+                btn.classList.remove('ink-btn', 'bg-[#f4a261]');
+            });
+            const activeTab = document.getElementById(`tab-mode-${newMode}`);
+            if (activeTab) activeTab.classList.add('ink-btn', 'bg-[#f4a261]');
+
+            const lineView = document.getElementById('make-line-view');
+            const bookView = document.getElementById('recipe-book-view');
+            const freeBar = document.getElementById('free-category-bar');
+            const rushBar = document.getElementById('rush-control-bar');
+            const playActions = document.getElementById('header-play-actions');
+
+            if (newMode === 'book') {
+                lineView.classList.add('hidden');
+                bookView.classList.remove('hidden');
+                bookView.classList.add('flex');
+                if (freeBar) freeBar.classList.add('hidden');
+                if (playActions) playActions.classList.add('hidden');
+                renderRecipeBook();
+                return;
+            }
+
+            bookView.classList.add('hidden');
+            bookView.classList.remove('flex');
+            lineView.classList.remove('hidden');
+            if (playActions) playActions.classList.remove('hidden');
+
+            if (newMode === 'rush') {
+                if (freeBar) freeBar.classList.add('hidden');
+                rushBar.classList.remove('hidden');
+                rushBar.classList.add('flex');
+                startRushSession();
+            } else {
+                rushBar.classList.add('hidden');
+                rushBar.classList.remove('flex');
+                if (freeBar) freeBar.classList.remove('hidden');
+                spawnNextCustomerOrder();
+            }
+        }
+
+        function stopTimers() {
+            if (game.patienceTimer) { clearInterval(game.patienceTimer); game.patienceTimer = null; }
+            if (game.rushClockTimer) { clearInterval(game.rushClockTimer); game.rushClockTimer = null; }
+        }
+
+        function startRushSession() {
+            stopTimers();
+            game.rushSeconds = 90;
+            game.rushClientsCount = 0;
+            game.combo = 1;
+            updateRushClockUI();
+            spawnNextCustomerOrder();
+
+            game.rushClockTimer = setInterval(() => {
+                game.rushSeconds--;
+                updateRushClockUI();
+                if (game.rushSeconds <= 0) {
+                    stopTimers();
+                    openRushEndModal();
+                }
+            }, 1000);
+        }
+
+        function updateRushClockUI() {
+            const m = String(Math.floor(game.rushSeconds / 60)).padStart(2, '0');
+            const s = String(game.rushSeconds % 60).padStart(2, '0');
+            document.getElementById('rush-clock').textContent = `${m}:${s}`;
+            document.getElementById('rush-combo-badge').textContent = `x${game.combo}`;
+        }
+
+        function openRushEndModal() {
+            document.getElementById('rush-summary-clients').textContent = game.rushClientsCount;
+            const acc = game.totalClicks === 0 ? 100 : Math.round((game.validClicks / game.totalClicks) * 100);
+            document.getElementById('rush-summary-coins').textContent = `${acc} %`;
+            const modal = document.getElementById('rush-end-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeRushEndModal() {
+            const modal = document.getElementById('rush-end-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        /**
+         * =====================================================================
+         * 7. TICKET DE CAISSE & DÉPLACEMENT SUR LA LIGNE
+         * =====================================================================
+         */
+        function setCategoryFilter(cat) {
+            game.catFilter = cat;
+            const selectEl = document.getElementById('category-select');
+            if (selectEl && selectEl.value !== cat) {
+                selectEl.value = cat;
+            }
+            updateKDSSummaryPanel();
+            spawnNextCustomerOrder();
+        }
+
+        function spawnNextCustomerOrder(specificRecipeId = null) {
+            game.locking = false;
+            game.duoQueue = [];
+            game.duoIndex = 0;
+            game.ticketCounter++;
+
+            let pool = RECIPES;
+            if (specificRecipeId) {
+                const found = RECIPES.find(r => r.id === specificRecipeId);
+                if (found) game.duoQueue = [{ recipe: found, grillSlip: null }];
+            } else if (game.mode === 'rush') {
+                const isDuo = Math.random() < 0.4;
+                if (isDuo) {
+                    const r1 = RECIPES[Math.floor(Math.random() * RECIPES.length)];
+                    const c2 = RECIPES.filter(r => r.id !== r1.id);
+                    const r2 = c2[Math.floor(Math.random() * c2.length)];
+                    game.duoQueue = [{ recipe: r1, grillSlip: null }, { recipe: r2, grillSlip: null }];
+                } else {
+                    const r = RECIPES[Math.floor(Math.random() * RECIPES.length)];
+                    game.duoQueue = [{ recipe: r, grillSlip: pickCompatibleGrillSlip(r) }];
+                }
+            } else {
+                if (game.catFilter !== 'ALL') pool = RECIPES.filter(r => r.category === game.catFilter);
+                const candidates = pool.length > 1 && game.currentRecipe ? pool.filter(r => r.id !== game.currentRecipe.id) : pool;
+                const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+                game.duoQueue = [{ recipe: chosen, grillSlip: null }];
+            }
+
+            if (game.patienceTimer) clearInterval(game.patienceTimer);
+            game.patience = 100;
+            updatePatienceUI();
+
+            if (game.mode === 'rush') {
+                const decay = game.duoQueue.length > 1 ? 0.7 : 1.05;
+                game.patienceTimer = setInterval(() => {
+                    game.patience = Math.max(0, game.patience - decay);
+                    updatePatienceUI();
+                    if (game.patience <= 0) {
+                        clearInterval(game.patienceTimer);
+                        game.combo = 1;
+                        updateRushClockUI();
+                        setBubbleMessage('⏰', 'Temps écoulé ! Ticket suivant...');
+                        playCozySound('error');
+                        setTimeout(() => spawnNextCustomerOrder(), 850);
+                    }
+                }, 250);
+            }
+
+            loadCurrentDuoItem(0);
+        }
+
+        function pickCompatibleGrillSlip(recipe) {
+            if (recipe.isDualBigMac) return null;
+            const compatible = GRILL_SLIPS.filter(slip => slip.type === 'extra' || recipe.steps.some(s => slip.targets.includes(s)));
+            if (compatible.length === 0 || Math.random() < 0.3) return null;
+            return compatible[Math.floor(Math.random() * compatible.length)];
+        }
+
+        function loadCurrentDuoItem(index) {
+            game.locking = false;
+            game.duoIndex = index;
+            const entry = game.duoQueue[index];
+            game.currentRecipe = entry.recipe;
+            game.activeGrillSlip = entry.grillSlip;
+            game.stepIndex = 0;
+            game.itemMistakes = 0;
+            game.itemUsedHelp = game.guideActive;
+            game.stack = [];
+            game.bigMacDual = { talon: [], centre: [], hasCornichons: false, hasCheddar: false };
+
+            let steps = [...game.currentRecipe.steps];
+            if (game.activeGrillSlip) {
+                if (game.activeGrillSlip.type === 'remove') {
+                    steps = steps.filter(s => !game.activeGrillSlip.targets.includes(s));
+                } else if (game.activeGrillSlip.type === 'extra') {
+                    steps.push(game.activeGrillSlip.addId);
+                }
+            }
+            game.activeSteps = steps;
+
+            const r = game.currentRecipe;
+            document.getElementById('ticket-number').textContent = `#${game.ticketCounter}`;
+            const catBadge = document.getElementById('order-cat-badge');
+            catBadge.className = `px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-[#4a3525] text-[#4a3525] ${r.catColor}`;
+            catBadge.textContent = r.categoryLabel;
+
+            const duoBadge = document.getElementById('order-duo-badge');
+            const duoTracker = document.getElementById('duo-items-tracker');
+            if (game.duoQueue.length > 1) {
+                duoBadge.classList.remove('hidden');
+                duoBadge.textContent = `DUO ${index + 1}/${game.duoQueue.length}`;
+                duoTracker.classList.remove('hidden');
+                duoTracker.innerHTML = game.duoQueue.map((item, i) => {
+                    if (i < index) return `<span class="px-1.5 py-0.5 rounded-md bg-[#b7e4c7] border border-[#4a3525]">✅ ${item.recipe.name}</span>`;
+                    if (i === index) return `<span class="px-1.5 py-0.5 rounded-md bg-[#f4a261] border border-[#4a3525]">👉 ${item.recipe.name}</span>`;
+                    return `<span class="px-1.5 py-0.5 rounded-md bg-[#faf6ee] border border-[#4a3525]/40">⏳ ${item.recipe.name}</span>`;
+                }).join('');
+            } else {
+                duoBadge.classList.add('hidden');
+                duoTracker.classList.add('hidden');
+            }
+
+            const slipBadge = document.getElementById('grill-slip-badge');
+            if (game.activeGrillSlip) {
+                slipBadge.classList.remove('hidden');
+                slipBadge.textContent = game.activeGrillSlip.label;
+            } else {
+                slipBadge.classList.add('hidden');
+            }
+
+            document.getElementById('order-title').textContent = r.name;
+            const currentStars = game.recipeStars[r.id] || 0;
+            document.getElementById('order-subtitle').innerHTML = `${renderStarIcons(currentStars, 'text-xs')} • ${r.isDualBigMac ? 'Double montage Talon & Centre (fermeture Couronne)' : 'Montage sur couronne retournée (fermeture Talon)'}`;
+
+            updateProgressPills();
+            updateConveyorPosition();
+            renderMovingBurger();
+            renderAllCounterStations();
+            updateKDSSummaryPanel();
+            setBubbleMessage('👉', r.isDualBigMac
+                ? '1. Prends le Pain Mac (3x) tout à gauche (Talon + Centre) !'
+                : '1. Prends la couronne du pain ou la tortilla tout à gauche !');
+        }
+
+        function updatePatienceUI() {
+            const bar = document.getElementById('patience-bar');
+            const emoji = document.getElementById('patience-emoji');
+            if (!bar || !emoji) return;
+            bar.style.width = `${game.patience}%`;
+            if (game.patience > 55) { bar.className = 'h-full bg-[#6a994e] transition-all duration-200'; emoji.textContent = '⏱️'; }
+            else if (game.patience > 25) { bar.className = 'h-full bg-[#f4a261] transition-all duration-200'; emoji.textContent = '⚡'; }
+            else { bar.className = 'h-full bg-[#e63946] transition-all duration-200'; emoji.textContent = '🔥'; }
+        }
+
+        function updateProgressPills() {
+            const r = game.currentRecipe;
+            const container = document.getElementById('order-progress-pills');
+            const total = r.isDualBigMac ? 6 : game.activeSteps.length;
+            container.innerHTML = Array.from({ length: total }).map((_, idx) => {
+                if (idx < game.stepIndex) return `<span class="w-2.5 h-2.5 rounded-full bg-[#6a994e] border border-[#4a3525]"></span>`;
+                if (idx === game.stepIndex) return `<span class="w-3 h-3 rounded-full bg-[#f4a261] border border-[#4a3525] animate-bounce"></span>`;
+                return `<span class="w-2.5 h-2.5 rounded-full bg-[#e3d5ca] border border-[#4a3525]/30"></span>`;
+            }).join('');
+        }
+
+        function getCurrentZoneStage(isComplete = false) {
+            if (isComplete) return 'done';
+            if (game.stepIndex === 0) return 'bread';
+            if (!game.currentRecipe) return 'bread';
+
+            if (game.currentRecipe.isDualBigMac) {
+                if (game.stepIndex === 1) return 'sauce';
+                if (game.stepIndex >= 2 && game.stepIndex <= 4) return 'garnish';
+                return 'protein';
+            }
+
+            const nextIng = INGREDIENTS[game.activeSteps[game.stepIndex]];
+            if (!nextIng) return 'done';
+            if (nextIng.type === 'bread') return 'bread';
+            if (nextIng.type === 'sauce') return 'sauce';
+            if (nextIng.type === 'topping' || nextIng.type === 'cheese') return 'garnish';
+            return 'protein';
+        }
+
+        function updateConveyorPosition(isComplete = false) {
+            const stage = getCurrentZoneStage(isComplete);
+            const carriage = document.getElementById('moving-burger-carriage');
+            const track = document.getElementById('panoramic-track');
+            const viewport = document.getElementById('panoramic-viewport');
+
+            // Déplacement du burger sur le tapis central (sous Sauces & Garnitures)
+            let carriageWidthPct = 24;
+            let carriageLeftPct = 0;
+
+            if (stage === 'sauce') {
+                carriageWidthPct = 26;
+                carriageLeftPct = 14;
+            } else if (stage === 'garnish') {
+                carriageWidthPct = 30;
+                carriageLeftPct = 46;
+            } else if (stage === 'protein' || stage === 'done') {
+                carriageWidthPct = 24;
+                carriageLeftPct = 76;
+            }
+
+            if (carriage) {
+                carriage.style.width = `${carriageWidthPct}%`;
+                carriage.style.marginLeft = `${carriageLeftPct}%`;
+            }
+
+            // Défilement panoramique fidèle à la ligne verte :
+            // - Pain & Sauces cadrés au départ (0px)
+            // - Garnitures & Viandes cadrées ensuite (maxScroll)
+            if (track && viewport) {
+                const trackW = track.offsetWidth;
+                const viewW = viewport.offsetWidth;
+                const maxScroll = Math.max(0, trackW - viewW);
+
+                let desiredScroll = 0;
+                if (stage === 'bread' || stage === 'sauce') {
+                    desiredScroll = 0;
+                } else if (stage === 'garnish') {
+                    desiredScroll = maxScroll * 0.72;
+                } else {
+                    desiredScroll = maxScroll;
+                }
+
+                const clampedScroll = Math.max(0, Math.min(maxScroll, desiredScroll));
+                track.style.transform = `translateX(-${clampedScroll}px)`;
+            }
+
+            const zones = {
+                bread: document.getElementById('zone-lbl-bread'),
+                sauce: document.getElementById('zone-lbl-sauce'),
+                garnish: document.getElementById('zone-lbl-garnish'),
+                protein: document.getElementById('zone-lbl-protein')
+            };
+            Object.entries(zones).forEach(([key, el]) => {
+                if (!el) return;
+                if (key === stage || (stage === 'done' && key === 'protein')) {
+                    el.className = 'py-1 rounded-xl border-2 border-[#4a3525] bg-[#fde68a] text-[#4a3525] transition-all cursor-pointer';
+                } else {
+                    el.className = 'py-1 rounded-xl border border-dashed border-[#4a3525]/50 hover:bg-[#faf6ee] transition-all cursor-pointer';
+                }
+            });
+        }
+
+        function panCameraToStage(stageName) {
+            const track = document.getElementById('panoramic-track');
+            const viewport = document.getElementById('panoramic-viewport');
+            if (!track || !viewport) return;
+            const trackW = track.offsetWidth;
+            const viewW = viewport.offsetWidth;
+            const maxScroll = Math.max(0, trackW - viewW);
+            let desiredScroll = 0;
+            if (stageName === 'garnish') desiredScroll = maxScroll * 0.72;
+            else if (stageName === 'protein') desiredScroll = maxScroll;
+            const clampedScroll = Math.max(0, Math.min(maxScroll, desiredScroll));
+            track.style.transform = `translateX(-${clampedScroll}px)`;
+        }
+
+        window.addEventListener('resize', () => {
+            if (game.currentRecipe) updateConveyorPosition(game.locking);
+        });
+
+        function toggleGuideMode() {
+            game.guideActive = !game.guideActive;
+            if (game.guideActive) game.itemUsedHelp = true;
+            const btn = document.getElementById('btn-guide-toggle');
+            const lbl = document.getElementById('guide-label');
+            if (game.guideActive) {
+                btn.classList.remove('bg-[#fffdf9]');
+                btn.classList.add('bg-[#a7c957]');
+                lbl.textContent = 'Guide : ON';
+            } else {
+                btn.classList.add('bg-[#fffdf9]');
+                btn.classList.remove('bg-[#a7c957]');
+                lbl.textContent = 'Guide : OFF';
+            }
+            renderMovingBurger();
+            renderAllCounterStations();
+        }
+
+        function skipCurrentOrder() {
+            if (game.locking) return;
+            game.combo = 1;
+            if (game.mode === 'rush') updateRushClockUI();
+            spawnNextCustomerOrder();
+        }
+
+        /**
+         * =====================================================================
+         * 8. INTERACTIONS DE MONTAGE SUR LA LIGNE
+         * =====================================================================
+         */
+        function onCounterIngredientClick(ingId) {
+            if (game.locking || !game.currentRecipe) return;
+            game.totalClicks++;
+
+            if (game.currentRecipe.isDualBigMac) {
+                handleBigMacParallelClick(ingId);
+                return;
+            }
+
+            const expectedId = game.activeSteps[game.stepIndex];
+            const clicked = INGREDIENTS[ingId];
+            const expected = INGREDIENTS[expectedId];
+
+            if (ingId === expectedId) {
+                game.validClicks++;
+                playCozySound(clicked.type === 'sauce' ? 'sauce' : 'place');
+                game.stack.push(clicked);
+                game.stepIndex++;
+                updateProgressPills();
+                updateKDSSummaryPanel();
+
+                if (game.stepIndex >= game.activeSteps.length) {
+                    finishAndServeOrder();
+                } else {
+                    updateConveyorPosition();
+                    renderMovingBurger();
+                    renderAllCounterStations();
+                    const nextZone = getCurrentZoneStage();
+                    const zoneHint = nextZone === 'sauce'
+                        ? 'Le burger glisse sous les Sauces !'
+                        : (nextZone === 'garnish' ? 'Direction la Table à Garniture & Fromages !' : 'Direction les Viandes à droite !');
+                    setBubbleMessage('✅', `${clicked.name} ajouté ! ${zoneHint}`);
+                }
+            } else {
+                triggerIngredientError(clicked.name, expected.name);
+            }
+        }
+
+        function handleBigMacParallelClick(ingId) {
+            const clicked = INGREDIENTS[ingId];
+            const bm = game.bigMacDual;
+
+            if (game.stepIndex === 0) {
+                if (ingId === 'pain_mac') {
+                    game.validClicks++;
+                    playCozySound('place');
+                    bm.talon.push({ id: 'pain_mac_flat', type: 'bread', name: 'Talon Mac' });
+                    bm.centre.push({ id: 'pain_mac_flat', type: 'bread', name: 'Centre Mac' });
+                    game.stack.push(clicked);
+                    game.stepIndex = 1;
+                    syncBigMacUI('✅', 'Talon & Centre posés (Couronne en attente) ! Glissement sous les Sauces.');
+                } else triggerIngredientError(clicked.name, 'Pain Mac (3x)');
+                return;
+            }
+            if (game.stepIndex === 1) {
+                if (ingId === 'sauce_mac') {
+                    game.validClicks++;
+                    playCozySound('sauce');
+                    bm.talon.push(clicked);
+                    bm.centre.push(clicked);
+                    game.stack.push(clicked);
+                    game.stepIndex = 2;
+                    syncBigMacUI('✅', 'Sauce Mac sur Talon & Centre ! Glissement vers les Garnitures : Salade Mac.');
+                } else triggerIngredientError(clicked.name, 'Sauce Mac');
+                return;
+            }
+            if (game.stepIndex === 2) {
+                if (ingId === 'salade_mac') {
+                    game.validClicks++;
+                    playCozySound('place');
+                    bm.talon.push(clicked);
+                    bm.centre.push(clicked);
+                    game.stack.push(clicked);
+                    game.stepIndex = 3;
+                    syncBigMacUI('✅', 'Salade Mac posée ! Mets 1 Cheddar (Talon) et 2 Cornichons (Centre).');
+                } else triggerIngredientError(clicked.name, 'Salade Mac');
+                return;
+            }
+            if (game.stepIndex === 3 || game.stepIndex === 4) {
+                if (ingId === 'cheddar_1' && !bm.hasCheddar) {
+                    game.validClicks++;
+                    playCozySound('place');
+                    bm.hasCheddar = true;
+                    bm.talon.push(clicked);
+                    game.stack.push({ ...clicked, side: 'talon' });
+                    game.stepIndex++;
+                    syncBigMacUI('✅', bm.hasCornichons ? 'Garnitures OK ! Glissement vers les Viandes : Steak 10:1.' : '1 Cheddar sur le Talon ! Ajoute 2 Cornichons sur le Centre.');
+                    return;
+                }
+                if (ingId === 'cornichons_2' && !bm.hasCornichons) {
+                    game.validClicks++;
+                    playCozySound('place');
+                    bm.hasCornichons = true;
+                    bm.centre.push(clicked);
+                    game.stack.push({ ...clicked, side: 'centre' });
+                    game.stepIndex++;
+                    syncBigMacUI('✅', bm.hasCheddar ? 'Garnitures OK ! Glissement vers les Viandes : Steak 10:1.' : '2 Cornichons sur le Centre ! Ajoute 1 Cheddar sur le Talon.');
+                    return;
+                }
+                const missing = !bm.hasCornichons && !bm.hasCheddar ? '1 Cheddar (Talon) ou 2 Cornichons (Centre)' : (!bm.hasCheddar ? '1 Cheddar' : '2 Cornichons');
+                triggerIngredientError(clicked.name, missing);
+                return;
+            }
+            if (game.stepIndex === 5) {
+                if (ingId === 'viande_10_1') {
+                    game.validClicks++;
+                    playCozySound('place');
+                    bm.talon.push(clicked);
+                    bm.centre.push(clicked);
+                    game.stack.push(clicked);
+                    game.stepIndex = 6;
+                    updateProgressPills();
+                    finishAndServeOrder();
+                } else triggerIngredientError(clicked.name, 'Steak 10:1');
+            }
+        }
+
+        function setBubbleMessage(icon, text) {
+            const container = document.getElementById('bubble-feedback');
+            if (!container) return;
+            container.firstElementChild.textContent = icon;
+            document.getElementById('bubble-feedback-text').textContent = text;
+        }
+
+        function syncBigMacUI(icon, message) {
+            updateConveyorPosition();
+            renderMovingBurger();
+            renderAllCounterStations();
+            updateProgressPills();
+            updateKDSSummaryPanel();
+            setBubbleMessage(icon, message);
+        }
+
+        function triggerIngredientError(clickedName, expectedName) {
+            playCozySound('error');
+            game.itemMistakes++;
+            game.streak = 0;
+            game.combo = 1;
+            if (game.mode === 'rush') {
+                game.patience = Math.max(0, game.patience - 10);
+                updatePatienceUI();
+                updateRushClockUI();
+            }
+            updateKDSSummaryPanel();
+
+            const counter = document.getElementById('make-line-counter');
+            counter.classList.remove('wobble-err');
+            void counter.offsetWidth;
+            counter.classList.add('wobble-err');
+
+            setBubbleMessage('🤔', `Pas tout à fait ! Tu as pris "${clickedName}", il faut : ${expectedName}.`);
+        }
+
+        function finishAndServeOrder() {
+            game.locking = true;
+            updateConveyorPosition(true);
+
+            let earnedStars = 1;
+            if (game.itemMistakes === 0 && !game.itemUsedHelp) earnedStars = 3;
+            else if (game.itemMistakes <= 1) earnedStars = 2;
+
+            const prevStars = game.recipeStars[game.currentRecipe.id] || 0;
+            const isNewRecord = earnedStars > prevStars;
+            if (isNewRecord) {
+                game.recipeStars[game.currentRecipe.id] = earnedStars;
+                saveRecipeStars();
+            }
+
+            if (game.itemMistakes === 0) {
+                game.streak++;
+            }
+
+            const isDuoPart1 = game.duoQueue.length > 1 && game.duoIndex < game.duoQueue.length - 1;
+
+            const carriage = document.getElementById('moving-burger-carriage');
+            const pop = document.createElement('div');
+            pop.className = 'tip-floater absolute -top-6 left-1/2 -translate-x-1/2 z-30 font-bold text-center text-[#2b9348] bg-[#fffdf9] px-2.5 py-0.5 rounded-full border-2 border-[#4a3525] whitespace-nowrap';
+            pop.innerHTML = `<span class="text-xs">${'⭐'.repeat(earnedStars)} Envoyé !</span>`;
+            carriage.appendChild(pop);
+            setTimeout(() => pop.remove(), 950);
+
+            renderMovingBurger(true);
+            updateKDSSummaryPanel();
+
+            if (isDuoPart1) {
+                playCozySound('place');
+                setBubbleMessage('✅', `${game.currentRecipe.name} (${'⭐'.repeat(earnedStars)}) terminé ! 2ème produit du ticket...`);
+                setTimeout(() => loadCurrentDuoItem(game.duoIndex + 1), 800);
+                return;
+            }
+
+            if (game.patienceTimer) clearInterval(game.patienceTimer);
+            playCozySound('serve');
+
+            game.served++;
+            if (game.mode === 'rush') {
+                game.rushClientsCount++;
+                game.combo = Math.min(game.combo + 1, 5);
+                updateRushClockUI();
+            }
+
+            const starTag = isNewRecord && earnedStars === 3 ? ' — 100 % Acquis ⭐⭐⭐ !' : ` (${'⭐'.repeat(earnedStars)})`;
+            setBubbleMessage('🛎️', `${game.currentRecipe.name} prêt${starTag}`);
+
+            setTimeout(() => {
+                spawnNextCustomerOrder();
+            }, game.mode === 'rush' ? 800 : 1200);
+        }
+
+        function getBigMacExpectedIds() {
+            const bm = game.bigMacDual;
+            if (game.stepIndex === 0) return ['pain_mac'];
+            if (game.stepIndex === 1) return ['sauce_mac'];
+            if (game.stepIndex === 2) return ['salade_mac'];
+            if (game.stepIndex === 3 || game.stepIndex === 4) {
+                const ids = [];
+                if (!bm.hasCornichons) ids.push('cornichons_2');
+                if (!bm.hasCheddar) ids.push('cheddar_1');
+                return ids;
+            }
+            if (game.stepIndex === 5) return ['viande_10_1'];
+            return [];
+        }
+
+        function triggerVisualHint() {
+            if (game.locking || !game.currentRecipe) return;
+            game.itemUsedHelp = true;
+            if (game.currentRecipe.isDualBigMac) {
+                const bm = game.bigMacDual;
+                if (game.stepIndex === 0) setBubbleMessage('💡', 'Étape 1 (Gauche) : Pain Mac (3x) — Talon + Centre');
+                else if (game.stepIndex === 1) setBubbleMessage('💡', 'Étape 2 (Sauces) : Sauce Mac');
+                else if (game.stepIndex === 2) setBubbleMessage('💡', 'Étape 3 (Garnitures) : Salade Mac');
+                else if (game.stepIndex === 3 || game.stepIndex === 4) {
+                    const todo = [];
+                    if (!bm.hasCheddar) todo.push('1 Cheddar (Talon)');
+                    if (!bm.hasCornichons) todo.push('2 Cornichons (Centre)');
+                    setBubbleMessage('💡', `Étape 4 (Garnitures) : ${todo.join(' + ')}`);
+                } else if (game.stepIndex === 5) setBubbleMessage('💡', 'Étape 5 (Droite) : Steak 10:1');
+                return;
+            }
+            const expected = INGREDIENTS[game.activeSteps[game.stepIndex]];
+            setBubbleMessage('💡', `Prochain ingrédient : ${expected.name}`);
+        }
+
+        /**
+         * =====================================================================
+         * 9. RENDU DU BURGER MOBILE EN VOLUME 3D & DES POSTES
+         * =====================================================================
+         */
+        function renderMovingBurger(isComplete = false) {
+            const carriage = document.getElementById('moving-burger-carriage');
+
+            const buildBurgerContentHTML = () => {
+                if (game.currentRecipe && game.currentRecipe.isDualBigMac) {
+                    return getBigMacDualHTML(isComplete);
+                }
+
+                if (game.stack.length === 0 && (!game.guideActive || !game.currentRecipe)) {
+                    return `
+                        <div class="lace-doily w-20 h-20 sm:w-24 sm:h-24 rounded-full flex flex-col items-center justify-center text-center p-1">
+                            <span class="text-xl opacity-70">🍞</span>
+                            <span class="font-hand text-xs font-bold text-[#785941] leading-none mt-0.5">Couronne</span>
+                        </div>
+                    `;
+                }
+
+                let layersHtml = game.stack.map((ing, idx) => `
+                    <div class="burger-3d-piece w-full flex justify-center relative" style="z-index: ${idx + 1}; margin-top: ${idx === 0 ? '0' : '-22px'};">
+                        ${get3DBurgerLayerSVG(ing, false)}
+                    </div>
+                `).join('');
+
+                if (!isComplete && game.guideActive && game.currentRecipe && game.stepIndex < game.activeSteps.length) {
+                    const nextIng = INGREDIENTS[game.activeSteps[game.stepIndex]];
+                    layersHtml += `
+                        <div class="w-full flex flex-col items-center opacity-60 animate-pulse relative" style="z-index: 40; margin-top: -16px;">
+                            ${get3DBurgerLayerSVG(nextIng, false)}
+                            <span class="pan-label-tag px-2 py-0.5 rounded-full text-[9px] font-bold text-[#4a3525] -mt-2">👉 ${nextIng.shortName || nextIng.name}</span>
+                        </div>
+                    `;
+                }
+
+                if (isComplete && game.stack[0]) {
+                    layersHtml += `
+                        <div class="burger-3d-piece w-full flex justify-center relative" style="z-index: 50; margin-top: -22px;">
+                            ${get3DBurgerLayerSVG(game.stack[0], true)}
+                        </div>
+                    `;
+                }
+
+                const lastIng = game.stack[game.stack.length - 1];
+                const topCaption = isComplete
+                    ? `<span class="pan-label-tag mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold text-[#166534] bg-[#dcfce7]">🛎️ ${game.currentRecipe.name} prêt !</span>`
+                    : (lastIng ? `<span class="pan-label-tag mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold text-[#4a3525]">${game.stack.length}. ${lastIng.shortName || lastIng.name}</span>` : '');
+
+                return `
+                    <div class="lace-doily w-28 h-28 sm:w-32 sm:h-32 rounded-full flex flex-col items-center justify-end p-1 relative">
+                        <div class="w-full flex flex-col-reverse items-center justify-start">
+                            ${layersHtml}
+                        </div>
+                        ${topCaption}
+                    </div>
+                `;
+            };
+
+            carriage.innerHTML = `
+                <div class="flex items-center justify-center w-full py-1">
+                    ${buildBurgerContentHTML()}
+                </div>
+            `;
+        }
+
+        function getBigMacDualHTML(isComplete) {
+            const bm = game.bigMacDual;
+
+            if (bm.talon.length === 0 && bm.centre.length === 0 && !game.guideActive) {
+                return `
+                    <div class="lace-doily w-24 h-24 rounded-full flex flex-col items-center justify-center text-center p-1">
+                        <span class="text-xl opacity-75">🍔🍔</span>
+                        <span class="font-hand text-xs font-bold text-[#785941] leading-none mt-0.5">Pain Mac (3x)</span>
+                    </div>
+                `;
+            }
+
+            if (isComplete) {
+                return `
+                    <div class="lace-doily w-28 h-28 sm:w-32 sm:h-32 rounded-full flex flex-col items-center justify-center p-1 relative">
+                        <div class="w-full flex flex-col-reverse items-center">
+                            <div class="burger-3d-piece w-full">${get3DBurgerLayerSVG({ id: 'pain_mac_flat', type: 'bread' }, false)}</div>
+                            <div class="burger-3d-piece w-full -mt-5">${get3DBurgerLayerSVG(INGREDIENTS.salade_mac, false)}</div>
+                            <div class="burger-3d-piece w-full -mt-5">${get3DBurgerLayerSVG(INGREDIENTS.cheddar_1, false)}</div>
+                            <div class="burger-3d-piece w-full -mt-5">${get3DBurgerLayerSVG(INGREDIENTS.viande_10_1, false)}</div>
+                            <div class="burger-3d-piece w-full -mt-5">${get3DBurgerLayerSVG({ id: 'pain_mac_flat', type: 'bread' }, false)}</div>
+                            <div class="burger-3d-piece w-full -mt-5">${get3DBurgerLayerSVG(INGREDIENTS.salade_mac, false)}</div>
+                            <div class="burger-3d-piece w-full -mt-5">${get3DBurgerLayerSVG(INGREDIENTS.cornichons_2, false)}</div>
+                            <div class="burger-3d-piece w-full -mt-5">${get3DBurgerLayerSVG(INGREDIENTS.viande_10_1, false)}</div>
+                            <div class="burger-3d-piece w-full -mt-5">${get3DBurgerLayerSVG(INGREDIENTS.pain_mac, true)}</div>
+                        </div>
+                        <span class="pan-label-tag px-2 py-0.5 rounded-full text-[9px] font-bold text-[#166534] bg-[#dcfce7]">🛎️ Couronne fermée !</span>
+                    </div>
+                `;
+            }
+
+            const renderMiniCol = (title, items, ghost) => {
+                const rows = items.map((ing, idx) => `
+                    <div class="burger-3d-piece w-full flex justify-center" style="margin-top: ${idx === 0 ? '0' : '-18px'};">
+                        ${get3DBurgerLayerSVG(ing, false)}
+                    </div>
+                `).join('');
+                const ghostRow = (game.guideActive && ghost)
+                    ? `<div class="border border-dashed border-[#4a3525] bg-[#fef3c7] rounded-lg px-1 py-0.5 text-[8px] font-bold text-center animate-pulse">👉 ${ghost}</div>`
+                    : '';
+                return `
+                    <div class="bg-[#fffdf9]/90 border border-[#4a3525] rounded-xl p-1 flex flex-col justify-between min-h-[105px]">
+                        <div class="text-[8px] font-bold text-center uppercase text-[#785941] mb-0.5">${title}</div>
+                        <div class="flex-1 flex flex-col-reverse items-center justify-start">${rows}${ghostRow}</div>
+                    </div>
+                `;
+            };
+
+            let gTalon = null, gCentre = null;
+            if (game.stepIndex === 0) { gTalon = 'Talon Mac'; gCentre = 'Centre Mac'; }
+            else if (game.stepIndex === 1) { gTalon = 'Sauce Mac'; gCentre = 'Sauce Mac'; }
+            else if (game.stepIndex === 2) { gTalon = 'Salade Mac'; gCentre = 'Salade Mac'; }
+            else if (game.stepIndex === 3 || game.stepIndex === 4) {
+                if (!bm.hasCheddar) gTalon = '1 Cheddar';
+                if (!bm.hasCornichons) gCentre = '2 Cornichons';
+            } else if (game.stepIndex === 5) { gTalon = 'Steak 10:1'; gCentre = 'Steak 10:1'; }
+
+            return `
+                <div class="grid grid-cols-2 gap-1 w-full max-w-[230px]">
+                    ${renderMiniCol('Talon', bm.talon, gTalon)}
+                    ${renderMiniCol('Centre', bm.centre, gCentre)}
+                </div>
+            `;
+        }
+
+        function renderAllCounterStations() {
+            let expectedIds = [];
+            if (!game.locking && game.currentRecipe) {
+                expectedIds = game.currentRecipe.isDualBigMac
+                    ? getBigMacExpectedIds()
+                    : [game.activeSteps[game.stepIndex]];
+            }
+
+            const all = Object.values(INGREDIENTS);
+
+            // 1. Pains & Wraps en haut à gauche
+            const breadsEl = document.getElementById('station-breads');
+            breadsEl.innerHTML = '';
+            all.filter(i => i.type === 'bread').forEach(ing => {
+                const isTarget = game.guideActive && expectedIds.includes(ing.id);
+                const btn = document.createElement('button');
+                btn.onclick = () => onCounterIngredientClick(ing.id);
+                btn.className = `recessed-pan rounded-xl p-1 min-h-[58px] flex flex-col items-center justify-between text-center ${
+                    isTarget ? '!bg-[#bef264] ring-2 ring-[#65a30d] animate-pulse' : ''
+                }`;
+                btn.innerHTML = `
+                    <div class="w-full">${getIngredientSVG(ing)}</div>
+                    <span class="pan-label-tag px-1.5 py-0.2 rounded-full text-[9px] font-bold leading-tight line-clamp-1">${ing.name}</span>
+                `;
+                breadsEl.appendChild(btn);
+            });
+
+            // 2. Sauces au-dessus
+            const saucesEl = document.getElementById('station-sauces');
+            saucesEl.innerHTML = '';
+            all.filter(i => i.type === 'sauce').forEach(ing => {
+                const isTarget = game.guideActive && expectedIds.includes(ing.id);
+                const btn = document.createElement('button');
+                btn.onclick = () => onCounterIngredientClick(ing.id);
+                btn.className = `ink-btn rounded-xl p-1 flex flex-col items-center justify-between text-center ${
+                    isTarget ? 'bg-[#bef264] ring-2 ring-[#65a30d] animate-pulse' : 'bg-[#fffdf9] hover:bg-[#faf6ee]'
+                }`;
+                btn.innerHTML = `
+                    ${getIngredientSVG(ing)}
+                    <span class="text-[9px] sm:text-[10px] font-bold leading-tight mt-0.5 line-clamp-1">${ing.name.replace('Sauce ', '')}</span>
+                `;
+                saucesEl.appendChild(btn);
+            });
+
+            // 3. Table à Garniture & Fromages
+            renderGarnishTable(expectedIds);
+
+            // 4. Viandes & Chaud à droite
+            const proteinsEl = document.getElementById('station-proteins');
+            proteinsEl.innerHTML = '';
+            all.filter(i => i.type === 'protein').forEach(ing => {
+                const isTarget = game.guideActive && expectedIds.includes(ing.id);
+                const btn = document.createElement('button');
+                btn.onclick = () => onCounterIngredientClick(ing.id);
+                btn.className = `recessed-pan rounded-xl p-1 min-h-[58px] flex flex-col items-center justify-between text-center ${
+                    isTarget ? '!bg-[#bef264] ring-2 ring-[#65a30d] animate-pulse' : ''
+                }`;
+                btn.innerHTML = `
+                    <div class="w-full">${getIngredientSVG(ing)}</div>
+                    <span class="pan-label-tag px-1.5 py-0.2 rounded-full text-[9px] font-bold leading-tight line-clamp-1">${ing.name}</span>
+                `;
+                proteinsEl.appendChild(btn);
+            });
+        }
+
+        function renderGarnishTable(expectedIds) {
+            const makePan = (ingId) => {
+                const ing = INGREDIENTS[ingId];
+                const isTarget = game.guideActive && expectedIds.includes(ing.id);
+                return `
+                    <button onclick="onCounterIngredientClick('${ing.id}')"
+                        class="recessed-pan rounded-xl p-1 min-h-[64px] flex flex-col items-center justify-between text-center ${
+                            isTarget ? 'ring-3 ring-[#65a30d] animate-pulse' : ''
+                        }">
+                        <div class="w-full flex-1 flex items-center">${getIngredientSVG(ing)}</div>
+                        <span class="pan-label-tag px-1.5 rounded-full text-[9px] font-bold leading-tight line-clamp-1">${ing.shortName || ing.name}</span>
+                    </button>
+                `;
+            };
+
+            const makeSplitPan = (id1, id2, label, sampleId) => {
+                const sample = INGREDIENTS[sampleId];
+                const t1 = game.guideActive && expectedIds.includes(id1);
+                const t2 = game.guideActive && expectedIds.includes(id2);
+                const def = expectedIds.includes(id2) ? id2 : id1;
+                return `
+                    <div onclick="onCounterIngredientClick('${def}')"
+                        class="recessed-pan group relative cursor-pointer rounded-xl p-1 min-h-[64px] flex flex-col items-center justify-between text-center overflow-hidden ${
+                            (t1 || t2) ? 'ring-3 ring-[#65a30d] animate-pulse' : ''
+                        }">
+                        <div class="w-full flex-1 flex items-center touch-split-hide group-hover:opacity-20">${getIngredientSVG(sample)}</div>
+                        <span class="pan-label-tag px-1.5 rounded-full touch-split-hide text-[9px] font-bold leading-tight line-clamp-1 group-hover:opacity-20">${label}</span>
+                        <div class="touch-split-overlay absolute inset-0 bg-[#fffdf9]/95 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 p-1 w-full">
+                            <button type="button" onclick="event.stopPropagation(); onCounterIngredientClick('${id1}')"
+                                class="flex-1 h-full rounded-lg font-black text-[11px] border-2 border-[#4a3525] ${t1 ? 'bg-[#bef264] animate-bounce' : 'bg-[#86efac] hover:bg-[#4ade80]'}">1</button>
+                            <button type="button" onclick="event.stopPropagation(); onCounterIngredientClick('${id2}')"
+                                class="flex-1 h-full rounded-lg font-black text-[11px] border-2 border-[#4a3525] ${t2 ? 'bg-[#bef264] animate-bounce' : 'bg-[#86efac] hover:bg-[#4ade80]'}">2</button>
+                        </div>
+                    </div>
+                `;
+            };
+
+            const whiteEl = document.getElementById('station-white-cheese');
+            const emm = INGREDIENTS.emmental_1;
+            const emmTarget = game.guideActive && expectedIds.includes('emmental_1');
+            whiteEl.innerHTML = `
+                <button onclick="onCounterIngredientClick('emmental_1')"
+                    class="recessed-pan w-full rounded-xl p-1 min-h-[64px] flex flex-col items-center justify-between text-center ${
+                        emmTarget ? '!bg-[#bef264] ring-2 ring-[#65a30d] animate-pulse' : '!bg-[#fef9c3]'
+                    }">
+                    <div class="w-full flex-1 flex items-center">${getIngredientSVG(emm)}</div>
+                    <span class="pan-label-tag px-1.5 rounded-full text-[9px] font-bold leading-tight">White Ched.</span>
+                </button>
+            `;
+
+            document.getElementById('station-garnish-row1').innerHTML = [
+                makePan('oignons_frits'),
+                makePan('oignons_frais'),
+                makePan('gouda_1'),
+                makePan('bacon'),
+                makePan('jalapenos')
+            ].join('');
+
+            document.getElementById('station-garnish-row2').innerHTML = [
+                makePan('salade_mac'),
+                makePan('salade_batavia'),
+                makePan('salade_mac'),
+                makeSplitPan('cornichons_1', 'cornichons_2', 'Cornichon', 'cornichons_1'),
+                makeSplitPan('tomate_1', 'tomate_2', 'Tomate', 'tomate_1')
+            ].join('');
+
+            const cheddarCol = document.getElementById('station-cheddar-col');
+            const cheddars = [
+                { id: 'cheddar_demi', bg: 'bg-[#ffd6a5]' },
+                { id: 'cheddar_1', bg: 'bg-[#ffbe76]' },
+                { id: 'cheddar_2', bg: 'bg-[#f4a261]' }
+            ];
+            cheddarCol.innerHTML = cheddars.map(c => {
+                const ing = INGREDIENTS[c.id];
+                const isTarget = game.guideActive && expectedIds.includes(c.id);
+                return `
+                    <button onclick="onCounterIngredientClick('${c.id}')"
+                        class="recessed-pan ${isTarget ? '!bg-[#bef264] ring-2 ring-[#65a30d] animate-pulse' : c.bg} rounded-xl p-1 min-h-[44px] flex flex-col items-center justify-between text-center">
+                        <div class="w-full">${getIngredientSVG(ing)}</div>
+                        <span class="pan-label-tag px-1.5 rounded-full text-[9px] font-bold leading-tight">${ing.shortName}</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        /**
+         * =====================================================================
+         * 10. CARNET DE RECETTES ILLUSTRÉ (29 FICHES)
+         * =====================================================================
+         */
+        function filterBookCategory(cat) {
+            game.bookCatFilter = cat;
+            document.querySelectorAll('.book-cat-btn').forEach(btn => {
+                if (btn.dataset.bookCat === cat) btn.classList.add('ink-btn', 'ring-2', 'ring-[#4a3525]');
+                else btn.classList.remove('ink-btn', 'ring-2', 'ring-[#4a3525]');
+            });
+            renderRecipeBook();
+        }
+
+        function toggleBookUnmasteredFilter() {
+            game.bookOnlyUnmastered = !game.bookOnlyUnmastered;
+            const btn = document.getElementById('btn-book-unmastered');
+            if (game.bookOnlyUnmastered) {
+                btn.classList.remove('bg-[#faf6ee]');
+                btn.classList.add('bg-[#f4a261]');
+            } else {
+                btn.classList.add('bg-[#faf6ee]');
+                btn.classList.remove('bg-[#f4a261]');
+            }
+            renderRecipeBook();
+        }
+
+        function renderRecipeBook() {
+            const grid = document.getElementById('recipe-book-grid');
+            const query = (document.getElementById('book-search-input')?.value || '').toLowerCase().trim();
+
+            const totalEarned = RECIPES.reduce((acc, item) => acc + (game.recipeStars[item.id] || 0), 0);
+            const masteredCount = RECIPES.filter(item => (game.recipeStars[item.id] || 0) === 3).length;
+            const totalStarsEl = document.getElementById('book-total-stars');
+            if (totalStarsEl) totalStarsEl.textContent = `${totalEarned} / ${RECIPES.length * 3} ⭐ (${masteredCount}/${RECIPES.length} acquis)`;
+
+            const list = RECIPES.filter(r => {
+                const stars = game.recipeStars[r.id] || 0;
+                const matchCat = game.bookCatFilter === 'ALL' || r.category === game.bookCatFilter;
+                const matchUnmastered = !game.bookOnlyUnmastered || stars < 3;
+                const matchText = !query || r.name.toLowerCase().includes(query) || r.note.toLowerCase().includes(query) || r.steps.some(s => INGREDIENTS[s].name.toLowerCase().includes(query));
+                return matchCat && matchUnmastered && matchText;
+            });
+
+            grid.innerHTML = '';
+            if (list.length === 0) {
+                grid.innerHTML = `<div class="col-span-full bg-[#fffdf9] ink-border rounded-3xl p-8 text-center"><div class="text-4xl mb-2">🎉</div><p class="text-lg font-bold">Aucune recette à afficher dans ce filtre !</p></div>`;
+                return;
+            }
+
+            list.forEach(r => {
+                const stars = game.recipeStars[r.id] || 0;
+                const isMastered = stars === 3;
+                const card = document.createElement('div');
+                card.className = `bg-[#fffdf9] ink-border rounded-3xl overflow-hidden flex flex-col justify-between ${isMastered ? 'ring-4 ring-[#6a994e]/50' : ''}`;
+
+                let layersHtml = '';
+                if (r.isDualBigMac) {
+                    layersHtml = `
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="bg-[#faf6ee] border-2 border-[#4a3525] rounded-2xl p-2">
+                                <div class="text-[10px] font-bold uppercase text-center mb-1">⬅️ TALON</div>
+                                <div class="space-y-1 text-[11px] font-bold">
+                                    <div class="bg-[#d5bdaf] px-2 py-0.5 rounded-lg border border-[#4a3525]">4. Steak 10:1</div>
+                                    <div class="bg-[#ffbe76] px-2 py-0.5 rounded-lg border border-[#4a3525]">3. 1 Cheddar</div>
+                                    <div class="bg-[#b7e4c7] px-2 py-0.5 rounded-lg border border-[#4a3525]">2. Salade Mac</div>
+                                    <div class="bg-[#ffd6a5] px-2 py-0.5 rounded-lg border border-[#4a3525]">1. Sauce Mac</div>
+                                    <div class="bg-[#fde68a] px-2 py-0.5 rounded-lg border border-[#4a3525]">Base : Talon Mac</div>
+                                </div>
+                            </div>
+                            <div class="bg-[#faf6ee] border-2 border-[#4a3525] rounded-2xl p-2">
+                                <div class="text-[10px] font-bold uppercase text-center mb-1">➡️ CENTRE (+ Couronne)</div>
+                                <div class="space-y-1 text-[11px] font-bold">
+                                    <div class="bg-[#d5bdaf] px-2 py-0.5 rounded-lg border border-[#4a3525]">4. Steak 10:1</div>
+                                    <div class="bg-[#b7e4c7] px-2 py-0.5 rounded-lg border border-[#4a3525]">3. 2 Cornichons</div>
+                                    <div class="bg-[#b7e4c7] px-2 py-0.5 rounded-lg border border-[#4a3525]">2. Salade Mac</div>
+                                    <div class="bg-[#ffd6a5] px-2 py-0.5 rounded-lg border border-[#4a3525]">1. Sauce Mac</div>
+                                    <div class="bg-[#fde68a] px-2 py-0.5 rounded-lg border border-[#4a3525]">Base : Centre Mac</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    layersHtml = [...r.steps].reverse().map((stepId, revIdx) => {
+                        const ing = INGREDIENTS[stepId];
+                        const stepNum = r.steps.length - revIdx;
+                        return `
+                            <div class="${ing.color} border border-[#4a3525] rounded-xl px-2.5 py-1 flex items-center justify-between text-xs font-bold">
+                                <span>${stepNum}. ${ing.name}</span>
+                                <div class="w-10 shrink-0">${getIngredientSVG(ing)}</div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <div class="${r.catColor} px-4 py-2 flex items-center justify-between border-b-2 border-[#4a3525]">
+                            <span class="text-xs font-bold uppercase tracking-wider">${r.categoryLabel}</span>
+                            <div class="flex items-center gap-0.5 bg-[#fffdf9] px-2 py-0.5 rounded-full border border-[#4a3525]">
+                                ${renderStarIcons(stars, 'text-xs')}
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="text-lg font-bold">${r.name}</h3>
+                            <p class="font-hand text-base text-[#785941] mt-1 mb-3 leading-snug">${r.note}</p>
+                            <div class="space-y-1">${layersHtml}</div>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-[#faf6ee] border-t-2 border-[#4a3525]">
+                        <button onclick="practiceFromBook('${r.id}')" class="ink-btn w-full py-2 rounded-2xl bg-[#f4a261] font-bold text-xs uppercase tracking-wider">
+                            🍔 Préparer sur la ligne
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function practiceFromBook(recipeId) {
+            switchMode('free');
+            spawnNextCustomerOrder(recipeId);
+        }
+    </script>
+</body>
+</html>
